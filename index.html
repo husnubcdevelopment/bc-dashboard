@@ -3,169 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BC Development - Drive Navigator Pro</title>
+  <title>BC Development Pro</title>
 
-  <!-- CSP: voldoende permissief voor nu; kan later strakker -->
+  <!-- Laat OAuth-popup terugpraten -->
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+
+  <!-- CSP: ruim genoeg voor nu -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https://apis.google.com https://accounts.google.com https://www.googleapis.com https://content.googleapis.com https://cdn.tailwindcss.com https://*.googleusercontent.com; 
+        content="default-src 'self' https://apis.google.com https://accounts.google.com https://www.googleapis.com https://content.googleapis.com https://cdn.tailwindcss.com https://*.googleusercontent.com;
                  script-src 'self' https://apis.google.com https://accounts.google.com https://cdn.tailwindcss.com 'unsafe-inline' 'unsafe-eval';
                  style-src 'self' 'unsafe-inline';
                  img-src 'self' https: data:;
                  frame-src https://accounts.google.com https://content.googleapis.com;">
 
-  <!-- 0) Tailwind (ok voor dev op GitHub Pages) -->
+  <!-- Tailwind (dev is ok) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- 1) Globale config VÓÓR loaders -->
+  <!-- ====== GOOGLE CONFIG & LOADERS ====== -->
   <script>
+    // vul je eigen Client ID in:
     window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
     window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-    // status flags en token client op window
+    // ↓↓↓ VUL DIT IN: ID van je rootmap (BC Development/Projects)
+    const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
+
+    // status
     window.gapiInited = false;
     window.gisInited = false;
     window.tokenClient = null;
 
-    // 2) Loader callbacks (worden door <script onload> aangeroepen)
-    window.gapiLoaded = function () {
-      gapi.load('client', initializeGapiClient);
-    };
-
+    // onload callbacks
+    window.gapiLoaded = function () { gapi.load('client', initializeGapiClient); };
     async function initializeGapiClient() {
       try {
-        // BELANGRIJK: geen apiKey zolang je OAuth gebruikt
-        await gapi.client.init({
-          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-        });
+        await gapi.client.init({ discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
         window.gapiInited = true;
         if (typeof maybeEnableButtons === 'function') maybeEnableButtons();
-      } catch (e) {
-        console.error("gapi init error:", e);
-      }
+      } catch (e) { console.error('gapi init error:', e); }
     }
-
     window.gisLoaded = function () {
       try {
         window.tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: window.CLIENT_ID,
           scope: window.SCOPES,
-          callback: '', // wordt pas gezet in handleAuthClick
+          callback: '',
         });
         window.gisInited = true;
         if (typeof maybeEnableButtons === 'function') maybeEnableButtons();
-      } catch (e) {
-        console.error("gis init error:", e);
-      }
+      } catch (e) { console.error('gis init error:', e); }
     };
   </script>
-
-  <!-- 3) Laad libraries; roepen de bovenstaande onload callbacks aan -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .category-card { transition: all 0.3s ease; cursor: pointer; }
-    .category-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-    .file-item { transition: all 0.2s; }
-    .file-item:hover { background-color: rgba(59, 130, 246, 0.1); }
-    .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-    .modal.active { display: flex; align-items: center; justify-content: center; }
-    .loading { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial; }
+    .category-card { transition: all .2s; cursor:pointer }
+    .category-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(0,0,0,.12); }
+    .file-item { transition: all .15s; }
+    .file-item:hover { background: rgba(59,130,246,.08); }
+    .pulse-dot { width:8px;height:8px;border-radius:9999px;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.6s infinite;}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}70%{box-shadow:0 0 0 12px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+    .modal{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45)}
+    .modal.active{display:flex;align-items:center;justify-content:center}
+    .loading{border:3px solid #e5e7eb;border-top:3px solid #3b82f6;border-radius:50%;width:38px;height:38px;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
-
 <body class="bg-gradient-to-br from-gray-50 to-gray-100">
-  <!-- Auth Status Banner -->
-  <div id="authBanner" class="bg-yellow-100 border-b-2 border-yellow-400 p-3 text-center hidden">
-    <p class="text-yellow-800 font-medium">⚠️ Niet verbonden met Google Drive</p>
-    <button onclick="handleAuthClick()" class="mt-2 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 font-medium">
-      🔐 Inloggen met Google
-    </button>
+
+  <!-- Auth Banner -->
+  <div id="authBanner" class="bg-yellow-50 border-b border-yellow-300 p-3 text-center hidden">
+    <span class="text-yellow-800 font-medium">⚠️ Niet verbonden met Google Drive</span>
+    <button onclick="handleAuthClick()" class="ml-3 bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700">🔐 Inloggen met Google</button>
   </div>
 
-  <div class="container mx-auto p-8">
-    <!-- Header -->
-    <div class="text-center mb-6">
-      <h1 class="text-4xl font-bold text-gray-800 mb-2">BC Development Pro</h1>
-      <p class="text-xl text-gray-600">Project Navigator met Real-time Drive Integratie</p>
-      <div id="userInfo" class="mt-3 text-sm text-gray-500"></div>
+  <div class="container mx-auto p-6 md:p-10">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight">BC Development Pro</h1>
+      <p class="text-gray-600 mt-1">Project Navigator met Real-time Drive Integratie</p>
+      <div id="userInfo" class="mt-3 text-sm text-gray-500 flex justify-center"></div>
     </div>
 
-    <!-- Project Selector -->
-    <div class="mb-6 max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-      <label class="block text-lg font-bold text-gray-700 mb-3">🗂️ Selecteer Project:</label>
-      <select id="projectSelector" class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg font-medium">
+    <!-- Projects Overview Grid -->
+    <h2 class="text-xl font-semibold text-gray-800 mb-3">📁 Projecten</h2>
+    <div id="projectsOverview" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-10"></div>
+
+    <!-- Selector (optioneel als je ook “detail first” wil kiezen) -->
+    <div class="mb-6 max-w-3xl mx-auto bg-white rounded-xl shadow p-5">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">Selecteer Project:</label>
+      <select id="projectSelector" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         <option value="">-- Kies een project --</option>
       </select>
     </div>
 
-    <!-- Selected Project Info -->
+    <!-- Project Info -->
     <div id="projectInfo" class="mb-6 max-w-4xl mx-auto hidden"></div>
 
-    <!-- Zoekbalk -->
+    <!-- Search -->
     <div class="mb-6 max-w-md mx-auto">
-      <input type="text" id="searchInput" placeholder="🔍 Zoek categorie of bestand..."
-             class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none shadow"/>
+      <input id="searchInput" placeholder="🔍 Zoek categorie of bestand..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none shadow-sm"/>
     </div>
 
-    <!-- Grid Container -->
+    <!-- Categories Grid -->
     <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"></div>
-
-    <!-- Setup Instructions (ongewijzigd) -->
-    <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6">
-      <h3 class="text-xl font-bold text-blue-900 mb-4">🔧 Installatie Instructies</h3>
-
-      <div class="space-y-4 text-sm text-blue-800">
-        <div class="bg-white bg-opacity-60 p-4 rounded-lg">
-          <p class="font-bold mb-2">📋 STAP 1: Google Cloud Console Setup</p>
-          <ol class="list-decimal list-inside space-y-1 ml-2">
-            <li>Ga naar <a href="https://console.cloud.google.com" target="_blank" class="text-blue-600 underline">console.cloud.google.com</a></li>
-            <li>Maak een nieuw project: "BC Development Dashboard"</li>
-            <li>Activeer de <strong>Google Drive API</strong></li>
-            <li>Ga naar "Credentials" → "Create Credentials" → "OAuth Client ID"</li>
-            <li>Application type: <strong>Web application</strong></li>
-            <li>Authorized JavaScript origins: <code class="bg-gray-200 px-1">https://&lt;jouw-gebruikersnaam&gt;.github.io</code></li>
-            <li>Kopieer je <strong>Client ID</strong></li>
-          </ol>
-        </div>
-
-        <div class="bg-white bg-opacity-60 p-4 rounded-lg">
-          <p class="font-bold mb-2">🔑 STAP 2: Client ID invoeren</p>
-          <p class="mb-2">In dit bestand staat hij al bovenaan ingesteld.</p>
-          <code class="block bg-gray-800 text-green-400 p-2 rounded text-xs">
-            window.CLIENT_ID = '...apps.googleusercontent.com';
-          </code>
-        </div>
-
-        <div class="bg-white bg-opacity-60 p-4 rounded-lg">
-          <p class="font-bold mb-2">📁 STAP 3: Folder IDs ophalen</p>
-          <ol class="list-decimal list-inside space-y-1 ml-2">
-            <li>Open je projectmap in Google Drive</li>
-            <li>Kijk naar de URL: <code class="text-xs bg-gray-200 px-1">drive.google.com/drive/folders/<strong>ABC123XYZ</strong></code></li>
-            <li>Het gedeelte <strong>ABC123XYZ</strong> is je Folder ID</li>
-            <li>Vervang in de CONFIG hieronder de voorbeeldlinks met echte Folder IDs</li>
-          </ol>
-        </div>
-
-        <div class="bg-yellow-50 border border-yellow-300 p-4 rounded-lg">
-          <p class="font-bold text-yellow-800 mb-2">⚠️ Belangrijk voor GitHub Pages:</p>
-          <ul class="list-disc list-inside space-y-1 ml-2 text-yellow-700">
-            <li>Voeg bij OAuth consent screen je **Authorized domain** toe indien je custom domein gebruikt</li>
-            <li>Zet consent screen op “In production” of voeg jezelf als testgebruiker toe</li>
-            <li>Herlaad de pagina na eerste setup</li>
-          </ul>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- File Viewer Modal -->
   <div id="fileModal" class="modal">
-    <div class="bg-white rounded-lg shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-auto">
+    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-auto">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold text-gray-800" id="modalTitle"></h2>
         <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
@@ -174,384 +121,263 @@
     </div>
   </div>
 
-  <!-- ======= APP SCRIPT (ongewijzigd waar mogelijk; kritieke tweaks met window.) ======= -->
+  <!-- =================== APP SCRIPT =================== -->
   <script>
-    // DISCOVERY & SCOPES
-    const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-    // Gebruik overal window.tokenClient / window.gapiInited / window.gisInited
-
-    let selectedProject = null;
-
-    // 🎯 CONFIGURATIE - Jouw bestaande config (ongewijzigd)
+    // ---- CATEGORIES (labels/kleuren voor UI) ----
     const CONFIG = {
-      projects: [
-        {
-          id: "bc-template",
-          name: "BC Development Template",
-          location: "Template Structuur",
-          status: "Actief",
-          baseFolderId: "1wN3JhYPmKd6-mWdTglRasyw6ILXRem4h",
-          folders: {
-            prospectie: "1UGlPZd8F7LuyU6YobH82ATL6qJWwR3Xv",
-            overeenkomsten: "16Z7tjliPZj26F3jIdx2KOy9G0mWH0d1o",
-            stakeholders: "1N3gzHNMUQ0hA8ez6AuPOFH_KqOx1oBJY",
-            financien: "1dbnMTrrNd3oR0x9zxvoWjGIb_XJQ3kIy",
-            plannen: "1vvj2r_oKt47rL562QjtbAzPaaelTRFDy",
-            omv: "1dZdhRh-ZKNUjUrdhFkZBP_fgttf-X5sY",
-            akte: "1ABeK9QevYlIVWMElXrJgQBcFohvFfme6",
-            juridisch: "1IHJsy8dM0QXBJl810G90yCQa3XnG_jxC",
-            adviezen: "1lJtgxLoyJuyEjtmaXoB1C00wl2rtkdAa",
-            marktonderzoek: "1h23lnUfvuCrLjR8ObZ7ee7xNvIMw66w_",
-            verslagen: "1FbngpT2M2Ng-HXuFwdoxEHMjUOlZpYwR",
-            offertes: "1tBAeeGUJbDEEc5m1uV9rhPoGa0r1HD4W",
-            goedgekeurd: "1Yg2j98w8KvOiGaKCthDIKicENNI7IGuv"
-          }
-        }
-      ],
+      projects: [ /* je mag deze leeg laten of je template laten staan */ ],
       categories: [
-        { id: "prospectie", title: "1. Prospectie", icon: "📊", colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200", items: ["1.01 Haalbaarheidsanalyse"], subfolders: [{ id: "haalbaarheidsanalyse", title: "Haalbaarheidsanalyse", folderId: "1RT1yASZ9FVlSDWJqGPftnLQK6opYFIrd" }]},
-        { id: "overeenkomsten", title: "2. Overeenkomsten", icon: "✅", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items: ["2.01 Samenwerkingsovereenkomst"], subfolders: [{ id: "samenwerkingsovereenkomst", title: "Samenwerkingsovereenkomst", folderId: "1Zu7xdikd703AY2HO5iuWpzqInbhxVCOE" }]},
-        { id: "stakeholders", title: "3. Stakeholders", icon: "👥", colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200", items: ["3.01 Architect"], subfolders: [{ id: "architect", title: "Architect", folderId: "1J62ZQSci_rhChMniV7m74UXeIzVLXCca" }]},
-        { id: "financien", title: "4. Financiën", icon: "💰", colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200", items: ["4.01 Bank"], subfolders: [{ id: "bank", title: "Bank", folderId: "1mvKWBBvCVQGW1uTCYtDTwOLFnPYaq6mc" }]},
-        { id: "plannen", title: "5. Plannen", icon: "🗺️", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200", items: ["5.01 Uitvoeringsplan"], subfolders: [{ id: "uitvoeringsplan", title: "Uitvoeringsplan", folderId: "15FV7Sf3OK2iSg5EmX-uW0VkgPGzXdu3U" }]},
-        { id: "omv", title: "6. OMV", icon: "🏢", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200", items: ["6.01 CBS"], subfolders: [{ id: "cbs", title: "CBS", folderId: "1eodnRk0mum-e6DSSL-kan8Jvtxufx6Mt" }]},
-        { id: "akte", title: "7. Akte", icon: "📄", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items: ["7.01 Basisakte","7.02 Aankoopakte"], subfolders: [{ id: "basisakte", title: "Basisakte", folderId: "1LpvQGg_XaxrqJ3WNSLEkt8VNEb3tmz3L" },{ id: "aankoopakte", title: "Aankoopakte", folderId: "1twC1HNSSE__ffuDWcolZAextHQENQiTL" }]},
-        { id: "juridisch", title: "8. Juridisch", icon: "⚖️", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items: ["8.01 Contextanalyse"], subfolders: [{ id: "contextanalyse", title: "Contextanalyse", folderId: "1j1hm-w7IisJZry2qRNvYc6xa1JAHft8W" }]},
-        { id: "adviezen", title: "9. Adviezen", icon: "💡", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200", items: ["9.01 Fluvius"], subfolders: [{ id: "fluvius", title: "Fluvius", folderId: "12Zpe3h4DKDy4ql9LwUtqptK373Oo-QRL" }]},
-        { id: "marktonderzoek", title: "10. Marktonderzoek", icon: "📈", colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200", items: ["10.01 Projecten"], subfolders: [{ id: "projecten", title: "Projecten", folderId: "17l3fU5P6JcdBIV4FNj4LWjvHh-jsNFgc" }]},
-        { id: "verslagen", title: "11. Verslagen", icon: "📋", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200", items: ["11.01 Werfverslagen","11.02 Lobbyverslagen","11.03 Teamverslagen","11.04 Studiesverslagen","11.05 Stadverslagen"], subfolders: [
-          { id: "werfverslagen", title: "Werfverslagen", folderId: "1HZWTHvtzI2O00GaYjoLqU_HBAuZg53n0" },
-          { id: "lobbyverslagen", title: "Lobbyverslagen", folderId: "1LVbEu9CMv9yQls8EbBBSUNwsgVpfnBH7" },
-          { id: "teamverslagen", title: "Teamverslagen", folderId: "1pMNSligV6ndOdZd3ESkCkvxCLWko89YR" },
-          { id: "studiesverslagen", title: "Studiesverslagen", folderId: "1LSh8Q44YJE0iFNT17r1DOurxhB95g71G" },
-          { id: "stadverslagen", title: "Stadverslagen", folderId: "1eCJIYdqxNjbc7jeCpbDH5vy8afSl3xw6" }
-        ]},
-        { id: "offertes", title: "12. Offertes", icon: "📤", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200", items: ["12.01 Studie","12.02 Bouwrijpmaken","12.03 Constructie","12.04 Technieken","12.05 Afwerking","12.06 Omgevingsaanleg"], subfolders: [
-          { id: "studie", title: "Studie", folderId: "1U_a04-22VuMSbL5m_ABttkr8JrChe2bD" },
-          { id: "bouwrijpmaken", title: "Bouwrijpmaken", folderId: "10-S1lYT9v3BbgpG7-iC7yNl78MHvtuF4" },
-          { id: "constructie", title: "Constructie", folderId: "1NM2TajwDhxcwqh9gSoZFoexlYw3CMAn3" },
-          { id: "technieken", title: "Technieken", folderId: "1MsdyV7eeSu6BJbp-DEkZoxxqOHJMpOWL" },
-          { id: "afwerking", title: "Afwerking", folderId: "1CBg_gEfpTIElMnzlh3ltFqHRwm4UEGBz" },
-          { id: "omgevingsaanleg", title: "Omgevingsaanleg", folderId: "1JYAi3BdiXSMxrUQfJ6P_39f95Eg1YIxW" }
-        ]},
-        { id: "goedgekeurd", title: "13. Goedgekeurde Offertes", icon: "✔️", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200", items: [], subfolders: []}
+        { id:"prospectie",    title:"1. Prospectie",    icon:"📊", colorClass:"bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200", items:["1.01 Haalbaarheidsanalyse"], subfolders:[] },
+        { id:"overeenkomsten",title:"2. Overeenkomsten",icon:"✅", colorClass:"bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items:["2.01 Samenwerkingsovereenkomst"], subfolders:[] },
+        { id:"stakeholders",  title:"3. Stakeholders",  icon:"👥", colorClass:"bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200", items:["3.01 Architect"], subfolders:[] },
+        { id:"financien",     title:"4. Financiën",     icon:"💰", colorClass:"bg-green-100 border-green-400 text-green-900 hover:bg-green-200", items:["4.01 Bank"], subfolders:[] },
+        { id:"plannen",       title:"5. Plannen",       icon:"🗺️", colorClass:"bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200", items:["5.01 Uitvoeringsplan"], subfolders:[] },
+        { id:"omv",           title:"6. OMV",           icon:"🏢", colorClass:"bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200", items:["6.01 CBS"], subfolders:[] },
+        { id:"akte",          title:"7. Akte",          icon:"📄", colorClass:"bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items:["7.01 Basisakte","7.02 Aankoopakte"], subfolders:[] },
+        { id:"juridisch",     title:"8. Juridisch",     icon:"⚖️", colorClass:"bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200", items:["8.01 Contextanalyse"], subfolders:[] },
+        { id:"adviezen",      title:"9. Adviezen",      icon:"💡", colorClass:"bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200", items:["9.01 Fluvius"], subfolders:[] },
+        { id:"marktonderzoek",title:"10. Marktonderzoek",icon:"📈",colorClass:"bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200",items:["10.01 Projecten"], subfolders:[] },
+        { id:"verslagen",     title:"11. Verslagen",    icon:"📋", colorClass:"bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200", items:["11.01 Werfverslagen","11.02 Lobbyverslagen","11.03 Teamverslagen","11.04 Studiesverslagen","11.05 Stadverslagen"], subfolders:[] },
+        { id:"offertes",      title:"12. Offertes",     icon:"📤", colorClass:"bg-red-100 border-red-400 text-red-900 hover:bg-red-200", items:["12.01 Studie","12.02 Bouwrijpmaken","12.03 Constructie","12.04 Technieken","12.05 Afwerking","12.06 Omgevingsaanleg"], subfolders:[] },
+        { id:"goedgekeurd",   title:"13. Goedgekeurde Offertes", icon:"✔️", colorClass:"bg-red-100 border-red-400 text-red-900 hover:bg-red-200", items:[], subfolders:[] }
       ]
     };
 
-    // Helpers
+    // Prefix mapping (mappen in Drive)
+    const CATEGORY_PREFIX = {
+      prospectie:/^1[\s._-]/i, overeenkomsten:/^2[\s._-]/i, stakeholders:/^3[\s._-]/i, financien:/^4[\s._-]/i,
+      plannen:/^5[\s._-]/i, omv:/^6[\s._-]/i, akte:/^7[\s._-]/i, juridisch:/^8[\s._-]/i,
+      adviezen:/^9[\s._-]/i, marktonderzoek:/^10[\s._-]/i, verslagen:/^11[\s._-]/i, offertes:/^12[\s._-]/i, goedgekeurd:/^13[\s._-]/i
+    };
+
+    let selectedProject = null;
+    let DYNAMIC_PROJECTS = [];
+    let refreshInterval = null;
+
     function maybeEnableButtons() {
-      if (window.gapiInited && window.gisInited) {
-        const b = document.getElementById('authBanner');
-        if (b) b.classList.remove('hidden');
-      }
+      if (window.gapiInited && window.gisInited) document.getElementById('authBanner').classList.remove('hidden');
     }
 
-    function handleAuthClick() {
+    async function handleAuthClick() {
       window.tokenClient.callback = async (resp) => {
-        if (resp.error !== undefined) throw resp;
+        if (resp.error) throw resp;
         document.getElementById('authBanner').classList.add('hidden');
         await loadUserInfo();
-        if (selectedProject) renderCategories(CONFIG.categories, selectedProject);
+        // laad projecten + dropdown
+        if (PROJECTS_ROOT_FOLDER_ID) {
+          const projects = await discoverProjectsFromDrive();
+          DYNAMIC_PROJECTS = projects;
+          renderProjectsOverview(projects);
+        }
+        await populateProjectSelector();
       };
-
-      if (gapi.client.getToken() === null) {
-        window.tokenClient.requestAccessToken({ prompt: 'consent' });
-      } else {
-        window.tokenClient.requestAccessToken({ prompt: '' });
-      }
+      if (gapi.client.getToken() === null) window.tokenClient.requestAccessToken({ prompt: 'consent' });
+      else window.tokenClient.requestAccessToken({ prompt: '' });
     }
 
     async function loadUserInfo() {
       try {
-        const response = await gapi.client.request({
-          path: 'https://www.googleapis.com/drive/v3/about',
-          params: { fields: 'user' }
-        });
-        const user = response.result.user;
-        document.getElementById('userInfo').innerHTML = `
-          <span class="inline-flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full">
-            <span class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></span>
-            <span class="font-medium text-green-800">Verbonden als ${user.displayName}</span>
+        const r = await gapi.client.request({ path:'https://www.googleapis.com/drive/v3/about', params:{fields:'user'} });
+        const u = r.result.user;
+        document.getElementById('userInfo').innerHTML =
+          `<span class="inline-flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
+            <span class="pulse-dot"></span>
+            <span class="font-medium text-green-800">Verbonden als ${u.displayName}</span>
           </span>`;
-      } catch (err) {
-        console.error('Error loading user info:', err);
-      }
+      } catch(e){ console.error(e); }
+    }
+
+    // ---- Drive helpers ----
+    async function listChildFolders(parentId) {
+      try {
+        const resp = await gapi.client.drive.files.list({
+          q: `'${parentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'`,
+          fields: 'files(id,name,modifiedTime)',
+          orderBy: 'name_natural asc'
+        });
+        return resp.result.files || [];
+      } catch (e) { console.error('listChildFolders', e); return []; }
     }
 
     async function listFiles(folderId) {
       try {
-        const response = await gapi.client.drive.files.list({
+        const resp = await gapi.client.drive.files.list({
           q: `'${folderId}' in parents and trashed=false`,
-          fields: 'files(id, name, mimeType, modifiedTime, size, webViewLink, iconLink)',
+          fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
           orderBy: 'modifiedTime desc'
         });
-        return response.result.files;
-      } catch (err) {
-        console.error('Error listing files:', err);
-        return [];
+        return resp.result.files || [];
+      } catch (e) { console.error('listFiles', e); return []; }
+    }
+
+    async function discoverProjectsFromDrive() {
+      const projects = await listChildFolders(PROJECTS_ROOT_FOLDER_ID);
+      const result = [];
+      for (const proj of projects) {
+        const child = await listChildFolders(proj.id);
+        const folders = {};
+        for (const [catId, rx] of Object.entries(CATEGORY_PREFIX)) {
+          const hit = child.find(f => rx.test(f.name));
+          if (hit) folders[catId] = hit.id;
+        }
+        result.push({ id: proj.id, name: proj.name, modifiedTime: proj.modifiedTime, baseFolderId: proj.id, folders });
       }
+      return result;
     }
 
-    function formatFileSize(bytes) {
-      if (!bytes) return '-';
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    // ---- Dashboard Projects Grid ----
+    function categoryLabel(id){ const c=CONFIG.categories.find(x=>x.id===id); return c?c.title:id; }
+    function calcCompleteness(map){ const total=Object.keys(CATEGORY_PREFIX).length; const present=Object.keys(map).length; return {present,total,pct:Math.round(present/total*100)}; }
+
+    function renderProjectsOverview(projects){
+      const root = document.getElementById('projectsOverview');
+      if (!projects || !projects.length){ root.innerHTML = `<div class="text-gray-500">Geen projecten gevonden.</div>`; return; }
+      root.innerHTML = projects.map(p=>{
+        const {present,total,pct}=calcCompleteness(p.folders);
+        const missing = Object.keys(CATEGORY_PREFIX).filter(k=>!p.folders[k]).slice(0,3);
+        const missHtml = missing.length
+          ? `<div class="mt-2 text-xs text-amber-700">Ontbreekt: ${missing.map(categoryLabel).join(', ')}${missing.length>=3?'…':''}</div>`
+          : `<div class="mt-2 text-xs text-green-700">Alle categorieën aanwezig</div>`;
+        const quick = Object.entries(p.folders).slice(0,4).map(([cid,fid]) =>
+          `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
+            onclick="showFilesModal(CONFIG.categories.find(c=>c.id==='${cid}'),'${fid}')">${categoryLabel(cid)}</button>`).join(' ');
+        return `
+          <div class="bg-white rounded-xl shadow p-5 border">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <div class="text-lg font-bold">${p.name}</div>
+                <div class="text-xs text-gray-500">Laatst gewijzigd: ${new Date(p.modifiedTime).toLocaleDateString('nl-BE')}</div>
+              </div>
+              <button class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+                onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">Open hoofdmap</button>
+            </div>
+            <div class="text-sm mb-2">${present}/${total} categorieën</div>
+            <div class="w-full h-2 bg-gray-200 rounded"><div class="h-2 bg-blue-500 rounded" style="width:${pct}%"></div></div>
+            ${missHtml}
+            <div class="mt-3 flex flex-wrap gap-2">${quick}</div>
+            <div class="mt-4">
+              <button class="text-blue-600 underline text-sm"
+                onclick="(function(p){selectedProject=p;document.getElementById('projectInfo').classList.remove('hidden');showProjectInfo(p);renderCategories(CONFIG.categories,p);})({id:'${p.id}',name:'${p.name}',baseFolderId:'${p.baseFolderId}',folders:${JSON.stringify(p.folders)}})">Naar projectdetail →</button>
+            </div>
+          </div>`;
+      }).join('');
     }
 
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    // ---- Detail UI (jouw bestaande flow) ----
+    function populateProjectSelector(){
+      const sel=document.getElementById('projectSelector');
+      sel.innerHTML = '<option value="">-- Kies een project --</option>';
+      CONFIG.projects.forEach(p=>{
+        const opt=document.createElement('option'); opt.value=p.id; opt.textContent=`${p.name} - ${p.location||''} (${p.status||'Actief'})`; sel.appendChild(opt);
+      });
+      (DYNAMIC_PROJECTS||[]).forEach(p=>{
+        const opt=document.createElement('option'); opt.value=`auto:${p.id}`; opt.textContent=p.name; sel.appendChild(opt);
+      });
     }
 
-    function getFileIcon(mimeType) {
-      const icons = {
-        'application/pdf': '📕',
-        'application/vnd.google-apps.document': '📝',
-        'application/vnd.google-apps.spreadsheet': '📊',
-        'application/vnd.google-apps.presentation': '📊',
-        'application/vnd.google-apps.folder': '📁',
-        'image/': '🖼️',
-        'video/': '🎥',
-        'application/zip': '📦'
-      };
-      for (let [type, icon] of Object.entries(icons)) {
-        if (mimeType.includes(type)) return icon;
-      }
-      return '📄';
+    document.getElementById('projectSelector').addEventListener('change', e=>{
+      const id=e.target.value;
+      let p=CONFIG.projects.find(x=>x.id===id);
+      if(!p && id.startsWith('auto:')){ const rid=id.slice(5); p=DYNAMIC_PROJECTS.find(x=>x.id===rid); }
+      selectedProject = p || null;
+      if (selectedProject){ showProjectInfo(selectedProject); document.getElementById('projectInfo').classList.remove('hidden'); renderCategories(CONFIG.categories, selectedProject); }
+      else { document.getElementById('projectInfo').classList.add('hidden'); renderCategories(CONFIG.categories, null); }
+    });
+
+    function showProjectInfo(project){
+      const el=document.getElementById('projectInfo');
+      el.className='mb-6 max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow p-6';
+      el.innerHTML=`
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold mb-1">📁 ${project.name}</h2>
+            <p class="text-blue-100">Template Structuur • Status: Actief</p>
+          </div>
+          <button onclick="window.open('https://drive.google.com/drive/folders/${project.baseFolderId}','_blank')"
+            class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50">🗂️ Open hoofdmap</button>
+        </div>`;
     }
 
-    let currentFolderId = null;
-    let currentCategory = null;
-    let currentActiveTab = 'all';
-    let refreshInterval = null;
+    function renderCategories(categories, project){
+      const grid=document.getElementById('categoriesGrid'); grid.innerHTML='';
+      if(!project){ grid.innerHTML=`<div class="col-span-full text-center py-10 text-gray-400">👆 Selecteer een project</div>`; return; }
+      const isAuth = gapi.client.getToken()!==null;
+      categories.forEach(cat=>{
+        const card=document.createElement('div');
+        const folderId = project.folders ? project.folders[cat.id] : null;
+        card.className=`category-card ${cat.colorClass} border-2 rounded-xl shadow p-5`;
+        if(folderId && isAuth){ card.onclick=()=>showFilesModal(cat, folderId); }
+        let itemsHTML='';
+        if(cat.items?.length){ itemsHTML='<ul class="space-y-2 mt-2">'; cat.items.forEach(it=>itemsHTML+=`<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4 border-current">${it}</li>`); itemsHTML+='</ul>'; }
+        const badge = folderId && isAuth
+          ? '<span class="text-xs bg-white/90 px-2 py-1 rounded-full font-medium">📂 Bekijk bestanden</span>'
+          : '<span class="text-xs bg-red-100 px-2 py-1 rounded-full font-medium text-red-600">⚠️ Login / map ontbreekt</span>';
+        card.innerHTML=`
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3"><span class="text-2xl">${cat.icon}</span><h3 class="text-lg font-bold">${cat.title}</h3></div>
+            ${badge}
+          </div>
+          ${itemsHTML}`;
+        grid.appendChild(card);
+      });
+    }
 
-    async function showFilesModal(category, mainFolderId) {
-      const modal = document.getElementById('fileModal');
-      const modalTitle = document.getElementById('modalTitle');
-      const modalContent = document.getElementById('modalContent');
-
-      currentCategory = category;
-      currentFolderId = mainFolderId;
-      currentActiveTab = 'all';
-
-      modalTitle.innerHTML = `
-        ${category.title}
-        <span class="text-sm font-normal text-gray-500 ml-2">
-          <span class="inline-flex items-center gap-1">
-            <span class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></span>
-            Live updates
-          </span>
-        </span>`;
-
-      let tabsHTML = '';
-      if (category.subfolders && category.subfolders.length > 0) {
-        tabsHTML = `
-          <div class="flex gap-2 mb-4 border-b border-gray-200 pb-2 flex-wrap">
-            <button onclick="switchTab('all', '${mainFolderId}')" id="tab-all"
-                    class="tab-button px-4 py-2 rounded-t-lg font-medium transition-colors bg-blue-500 text-white">
-              📁 Alle bestanden
-            </button>`;
-        category.subfolders.forEach(subfolder => {
-          tabsHTML += `
-            <button onclick="switchTab('${subfolder.id}', '${subfolder.folderId}')" id="tab-${subfolder.id}"
-                    class="tab-button px-4 py-2 rounded-t-lg font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
-              📂 ${subfolder.title}
-            </button>`;
-        });
-        tabsHTML += '</div>';
-      }
-
-      modalContent.innerHTML = tabsHTML + '<div id="filesContainer"><div class="flex justify-center p-8"><div class="loading"></div></div></div>';
+    // ---- Files modal ----
+    async function showFilesModal(category, mainFolderId){
+      const modal=document.getElementById('fileModal');
+      const title=document.getElementById('modalTitle');
+      const content=document.getElementById('modalContent');
+      title.innerHTML = `${category.title} <span class="text-sm font-normal text-gray-500 ml-2"><span class="inline-flex items-center gap-1"><span class="pulse-dot"></span>Live</span></span>`;
+      content.innerHTML = `<div id="filesContainer"><div class="flex justify-center p-8"><div class="loading"></div></div></div>`;
       modal.classList.add('active');
-
       if (refreshInterval) clearInterval(refreshInterval);
-      refreshInterval = setInterval(() => refreshFiles(currentFolderId), 30000);
-
+      refreshInterval = setInterval(()=>refreshFiles(mainFolderId), 30000);
       await refreshFiles(mainFolderId);
     }
-
-    window.switchTab = async function(tabId, folderId) {
-      currentActiveTab = tabId;
-      currentFolderId = folderId;
-
-      document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('bg-blue-500', 'text-white');
-        btn.classList.add('bg-gray-100', 'text-gray-700');
-      });
-
-      const activeTab = document.getElementById(`tab-${tabId}`);
-      if (activeTab) {
-        activeTab.classList.remove('bg-gray-100', 'text-gray-700');
-        activeTab.classList.add('bg-blue-500', 'text-white');
-      }
-
-      await refreshFiles(folderId);
-    };
-
-    async function refreshFiles(folderId) {
-      const filesContainer = document.getElementById('filesContainer');
-      if (!filesContainer) return;
-
-      filesContainer.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
-
-      const files = await listFiles(folderId);
-
-      if (!files || files.length === 0) {
-        filesContainer.innerHTML = `
-          <p class="text-gray-500 text-center p-8">📭 Geen bestanden gevonden in deze map</p>
-          <p class="text-xs text-gray-400 text-center">Laatst gecontroleerd: ${new Date().toLocaleTimeString('nl-NL')}</p>`;
-        return;
-      }
-
-      let html = `
-        <div class="mb-3 flex justify-between items-center">
-          <p class="text-sm text-gray-600">📊 ${files.length} bestand(en) gevonden</p>
-          <button onclick="refreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium">🔄 Nu vernieuwen</button>
-        </div>
-        <div class="space-y-2">`;
-
-      files.forEach(file => {
-        const icon = getFileIcon(file.mimeType);
-        const isNew = (new Date() - new Date(file.modifiedTime)) < 3600000;
-        html += `
-          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow-md cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
-               onclick="window.open('${file.webViewLink}', '_blank')">
+    async function refreshFiles(folderId){
+      const box=document.getElementById('filesContainer'); if(!box) return;
+      box.innerHTML='<div class="flex justify-center p-8"><div class="loading"></div></div>';
+      const files=await listFiles(folderId);
+      if(!files.length){ box.innerHTML=`<p class="text-gray-500 text-center p-8">📭 Geen bestanden gevonden</p>`; return; }
+      let html = `<div class="mb-3 flex justify-between items-center"><p class="text-sm text-gray-600">📊 ${files.length} bestand(en)</p><button onclick="refreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium">🔄 Vernieuwen</button></div><div class="space-y-2">`;
+      files.forEach(f=>{
+        const isNew=(Date.now()-new Date(f.modifiedTime))<3600000;
+        html+=`
+          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew?'bg-yellow-50 border-yellow-300':''}"
+               onclick="window.open('${f.webViewLink}','_blank')">
             <div class="flex items-center gap-3 flex-1">
-              <span class="text-2xl">${icon}</span>
+              <span class="text-2xl">📄</span>
               <div>
-                <p class="font-medium text-gray-800">
-                  ${file.name}
-                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-                </p>
-                <p class="text-xs text-gray-500">${formatDate(file.modifiedTime)} • ${formatFileSize(file.size)}</p>
+                <p class="font-medium text-gray-800">${f.name} ${isNew?'<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>':''}</p>
+                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
               </div>
             </div>
             <span class="text-blue-500">🔗</span>
           </div>`;
       });
-
-      html += `
-        </div>
-        <p class="text-xs text-gray-400 text-center mt-4">
-          Laatst bijgewerkt: ${new Date().toLocaleTimeString('nl-NL')} • Auto-refresh elke 30 sec
-        </p>`;
-      filesContainer.innerHTML = html;
+      html += `</div><p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s</p>`;
+      box.innerHTML=html;
     }
+    function closeModal(){ document.getElementById('fileModal').classList.remove('active'); if(refreshInterval){clearInterval(refreshInterval); refreshInterval=null;} }
 
-    function closeModal() {
-      document.getElementById('fileModal').classList.remove('active');
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-        refreshInterval = null;
-      }
-    }
+    function formatFileSize(bytes){ if(!bytes) return '-'; const s=['Bytes','KB','MB','GB']; const i=Math.floor(Math.log(bytes)/Math.log(1024)); return (bytes/Math.pow(1024,i)).toFixed(2)+' '+s[i]; }
 
-    // Render + events
-    function populateProjectSelector() {
-      const selector = document.getElementById('projectSelector');
-      CONFIG.projects.forEach(project => {
-        const option = document.createElement('option');
-        option.value = project.id;
-        option.textContent = `${project.name} - ${project.location} (${project.status})`;
-        selector.appendChild(option);
-      });
-    }
-
-    function showProjectInfo(project) {
-      const infoDiv = document.getElementById('projectInfo');
-      infoDiv.className = 'mb-6 max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-6';
-      infoDiv.innerHTML = `
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-2xl font-bold mb-2">📁 ${project.name}</h2>
-            <p class="text-blue-100">📍 ${project.location} • Status: ${project.status}</p>
-          </div>
-          <button onclick="window.open('https://drive.google.com/drive/folders/${project.baseFolderId}', '_blank')"
-                  class="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition">
-            🗂️ Open hoofdmap
-          </button>
-        </div>`;
-    }
-
-    function renderCategories(categoriesToRender, project) {
-      const grid = document.getElementById('categoriesGrid');
-      grid.innerHTML = '';
-
-      if (!project) {
-        grid.innerHTML = `
-          <div class="col-span-full text-center py-12">
-            <p class="text-2xl text-gray-400 mb-2">👆 Selecteer eerst een project</p>
-          </div>`;
-        return;
-      }
-
-      const isAuthenticated = gapi.client.getToken() !== null;
-
-      categoriesToRender.forEach(category => {
-        const card = document.createElement('div');
-        const folderId = project.folders[category.id];
-
-        card.className = `category-card ${category.colorClass} border-2 rounded-lg shadow-lg p-5`;
-
-        if (folderId && isAuthenticated) {
-          card.onclick = () => showFilesModal(category, folderId);
-        }
-
-        let itemsHTML = '';
-        if (category.items.length > 0) {
-          itemsHTML = '<ul class="space-y-2">';
-          category.items.forEach(item => {
-            itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white bg-opacity-50 rounded border-l-4 border-current">${item}</li>`;
-          });
-          itemsHTML += '</ul>';
-        }
-
-        const linkBadge = folderId && isAuthenticated
-          ? '<span class="text-xs bg-white bg-opacity-80 px-2 py-1 rounded-full font-medium">📂 Bekijk bestanden</span>'
-          : '<span class="text-xs bg-red-100 px-2 py-1 rounded-full font-medium text-red-600">⚠️ Login vereist</span>';
-
-        card.innerHTML = `
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">${category.icon}</span>
-              <h2 class="text-lg font-bold">${category.title}</h2>
-            </div>
-            ${linkBadge}
-          </div>
-          ${itemsHTML}
-        `;
-
-        grid.appendChild(card);
-      });
-    }
-
-    document.getElementById('projectSelector').addEventListener('change', (e) => {
-      const projectId = e.target.value;
-      selectedProject = CONFIG.projects.find(p => p.id === projectId);
-
-      if (selectedProject) {
-        showProjectInfo(selectedProject);
-        document.getElementById('projectInfo').classList.remove('hidden');
-        renderCategories(CONFIG.categories, selectedProject);
-      } else {
-        document.getElementById('projectInfo').classList.add('hidden');
-        renderCategories(CONFIG.categories, null);
-      }
-    });
-
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      const filtered = CONFIG.categories.filter(cat =>
-        cat.title.toLowerCase().includes(searchTerm) ||
-        cat.items.some(item => item.toLowerCase().includes(searchTerm))
-      );
+    // ---- Search ----
+    document.getElementById('searchInput').addEventListener('input', (e)=>{
+      const q=e.target.value.toLowerCase();
+      const filtered=CONFIG.categories.filter(c=>c.title.toLowerCase().includes(q)||c.items.some(it=>it.toLowerCase().includes(q)));
       renderCategories(filtered, selectedProject);
     });
 
-    // Initialize UI (zonder Google init-calls!)
-    populateProjectSelector();
-    renderCategories(CONFIG.categories, null);
+    // Init UI (zonder Google)
+    (function init(){
+      // lege projects grid tot login
+      document.getElementById('projectsOverview').innerHTML =
+        `<div class="text-gray-500">Log in om projecten te laden uit Drive.</div>`;
+      // dropdown (toont alleen statische items tot login)
+      populateProjectSelector();
+      renderCategories(CONFIG.categories, null);
+    })();
   </script>
 </body>
 </html>
