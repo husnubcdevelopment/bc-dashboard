@@ -1,187 +1,151 @@
-// BC Development Dashboard - Configuration
+// BC Development Dashboard - Drive API Module
 
-// Google OAuth Configuration
-window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
-window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-// Root folder ID - Your main "BC Development/Projects" folder
-const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
-
-// **NEW: Project Permissions Configuration**
-// Define which email addresses have access to which projects
-const PROJECT_PERMISSIONS = {
-  // Example: Give access to specific projects by email
-  'iemand@gmail.com': {
-    allowedProjects: ['DeVenne'], // Array of project names they can access
-    accessLevel: 'read' // 'read' or 'write' (for future use)
-  },
-  'externe.partner@example.com': {
-    allowedProjects: ['Project Alpha', 'Project Beta'],
-    accessLevel: 'read'
+// List child folders in a parent folder
+async function listChildFolders(parentId) {
+  try {
+    const response = await gapi.client.drive.files.list({
+      q: `'${parentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'`,
+      fields: 'files(id,name,modifiedTime)',
+      orderBy: 'name_natural asc'
+    });
+    return response.result.files || [];
+  } catch (e) {
+    console.error('listChildFolders error:', e);
+    return [];
   }
-  // Users from @bcimmo.be domain have access to ALL projects (handled in code)
-};
-
-// Domain whitelist - users from these domains get full access
-const ALLOWED_DOMAINS = ['bcimmo.be'];
-
-// Categories Configuration
-const CONFIG = {
-  projects: [],
-  categories: [
-    {
-      id: "prospectie",
-      title: "1. Prospectie",
-      icon: "📊",
-      colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200",
-      items: ["1.01 Haalbaarheidsanalyse"],
-      subfolders: []
-    },
-    {
-      id: "overeenkomsten",
-      title: "2. Overeenkomsten",
-      icon: "✅",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["2.01 Samenwerkingsovereenkomst"],
-      subfolders: []
-    },
-    {
-      id: "stakeholders",
-      title: "3. Stakeholders",
-      icon: "👥",
-      colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200",
-      items: ["3.01 Architect"],
-      subfolders: []
-    },
-    {
-      id: "financien",
-      title: "4. Financiën",
-      icon: "💰",
-      colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200",
-      items: ["4.01 Bank"],
-      subfolders: []
-    },
-    {
-      id: "plannen",
-      title: "5. Plannen",
-      icon: "🗺️",
-      colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200",
-      items: ["5.01 Uitvoeringsplan"],
-      subfolders: []
-    },
-    {
-      id: "omv",
-      title: "6. OMV",
-      icon: "🏢",
-      colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200",
-      items: ["6.01 CBS"],
-      subfolders: []
-    },
-    {
-      id: "akte",
-      title: "7. Akte",
-      icon: "📄",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["7.01 Basisakte", "7.02 Aankoopakte"],
-      subfolders: []
-    },
-    {
-      id: "juridisch",
-      title: "8. Juridisch",
-      icon: "⚖️",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["8.01 Contextanalyse"],
-      subfolders: []
-    },
-    {
-      id: "adviezen",
-      title: "9. Adviezen",
-      icon: "💡",
-      colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200",
-      items: ["9.01 Fluvius"],
-      subfolders: []
-    },
-    {
-      id: "marktonderzoek",
-      title: "10. Marktonderzoek",
-      icon: "📈",
-      colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200",
-      items: ["10.01 Projecten"],
-      subfolders: []
-    },
-    {
-      id: "verslagen",
-      title: "11. Verslagen",
-      icon: "📋",
-      colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200",
-      items: ["11.01 Werfverslagen", "11.02 Lobbyverslagen", "11.03 Teamverslagen", "11.04 Studiesverslagen", "11.05 Stadverslagen"],
-      subfolders: []
-    },
-    {
-      id: "offertes",
-      title: "12. Offertes",
-      icon: "📤",
-      colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200",
-      items: ["12.01 Studie", "12.02 Bouwrijpmaken", "12.03 Constructie", "12.04 Technieken", "12.05 Afwerking", "12.06 Omgevingsaanleg"],
-      subfolders: []
-    },
-    {
-      id: "goedgekeurd",
-      title: "13. Goedgekeurde Offertes",
-      icon: "✔️",
-      colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200",
-      items: [],
-      subfolders: []
-    }
-  ]
-};
-
-// Category prefix mapping for folder discovery
-const CATEGORY_PREFIX = {
-  prospectie: /^1[\s._-]/i,
-  overeenkomsten: /^2[\s._-]/i,
-  stakeholders: /^3[\s._-]/i,
-  financien: /^4[\s._-]/i,
-  plannen: /^5[\s._-]/i,
-  omv: /^6[\s._-]/i,
-  akte: /^7[\s._-]/i,
-  juridisch: /^8[\s._-]/i,
-  adviezen: /^9[\s._-]/i,
-  marktonderzoek: /^10[\s._-]/i,
-  verslagen: /^11[\s._-]/i,
-  offertes: /^12[\s._-]/i,
-  goedgekeurd: /^13[\s._-]/i
-};
-
-// **NEW: Permission Helper Functions**
-function checkUserAccess(userEmail, projectName) {
-  if (!userEmail) return false;
-  
-  // Check if user is from allowed domain (full access)
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return true;
-  }
-  
-  // Check specific project permissions
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return false;
-  
-  return userPerms.allowedProjects.includes(projectName);
 }
 
-function filterProjectsByAccess(projects, userEmail) {
-  if (!userEmail) return [];
+// List files recursively including all subfolders
+async function listFilesRecursive(folderId, depth = 0, maxDepth = 3) {
+  if (depth > maxDepth) return [];
   
-  // Check if user has full access (domain-based)
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return projects; // Return all projects
+  try {
+    // Get files in current folder
+    const filesResponse = await gapi.client.drive.files.list({
+      q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
+      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+      orderBy: 'modifiedTime desc',
+      pageSize: 100
+    });
+    
+    let allFiles = filesResponse.result.files || [];
+    
+    // Get subfolders
+    const subfolders = await listChildFolders(folderId);
+    
+    // Recursively get files from subfolders
+    for (const subfolder of subfolders) {
+      const subFiles = await listFilesRecursive(subfolder.id, depth + 1, maxDepth);
+      // Add folder path to each file for better organization
+      subFiles.forEach(file => {
+        file.folderPath = subfolder.name + (file.folderPath ? '/' + file.folderPath : '');
+      });
+      allFiles = allFiles.concat(subFiles);
+    }
+    
+    return allFiles;
+  } catch (e) {
+    console.error('listFilesRecursive error:', e);
+    return [];
+  }
+}
+
+// List files in a folder (with option for recursive)
+async function listFiles(folderId, recursive = true) {
+  if (recursive) {
+    return await listFilesRecursive(folderId);
   }
   
-  // Filter projects based on specific permissions
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return [];
+  try {
+    const response = await gapi.client.drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+      orderBy: 'modifiedTime desc'
+    });
+    return response.result.files || [];
+  } catch (e) {
+    console.error('listFiles error:', e);
+    return [];
+  }
+}
+
+// Get detailed folder structure with subfolders
+async function getFolderStructure(folderId) {
+  const structure = {
+    files: [],
+    subfolders: []
+  };
   
-  return projects.filter(p => userPerms.allowedProjects.includes(p.name));
+  try {
+    // Get files
+    const filesResponse = await gapi.client.drive.files.list({
+      q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
+      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+      orderBy: 'modifiedTime desc'
+    });
+    structure.files = filesResponse.result.files || [];
+    
+    // Get subfolders with their files
+    const subfolders = await listChildFolders(folderId);
+    for (const subfolder of subfolders) {
+      const subFiles = await gapi.client.drive.files.list({
+        q: `'${subfolder.id}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
+        fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+        orderBy: 'modifiedTime desc'
+      });
+      
+      structure.subfolders.push({
+        id: subfolder.id,
+        name: subfolder.name,
+        files: subFiles.result.files || []
+      });
+    }
+    
+    return structure;
+  } catch (e) {
+    console.error('getFolderStructure error:', e);
+    return structure;
+  }
+}
+
+// Discover all projects from the root Drive folder
+async function discoverProjectsFromDrive() {
+  if (typeof PROJECTS_ROOT_FOLDER_ID === 'undefined' || !PROJECTS_ROOT_FOLDER_ID) {
+    console.warn('PROJECTS_ROOT_FOLDER_ID not defined');
+    return [];
+  }
+  
+  const projects = await listChildFolders(PROJECTS_ROOT_FOLDER_ID);
+  const result = [];
+  
+  for (const proj of projects) {
+    const childFolders = await listChildFolders(proj.id);
+    const folders = {};
+    
+    // Match folders to categories based on prefix
+    for (const [catId, regex] of Object.entries(CATEGORY_PREFIX)) {
+      const match = childFolders.find(f => regex.test(f.name));
+      if (match) {
+        folders[catId] = match.id;
+      }
+    }
+    
+    result.push({
+      id: proj.id,
+      name: proj.name,
+      modifiedTime: proj.modifiedTime,
+      baseFolderId: proj.id,
+      folders
+    });
+  }
+  
+  return result;
+}
+
+// Helper: Format file size
+function formatFileSize(bytes) {
+  if (!bytes) return '-';
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
 }
