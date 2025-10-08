@@ -23,8 +23,8 @@ const PROJECT_PERMISSIONS = {
     directAccess: true,
     allowedProjects: [
       {
-        name: 'Projects',              // Exacte naam uit Drive
-        folderId: '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw'     // Folder ID uit stap 2
+        name: '2025_DeVenne',              // Exacte naam uit Drive
+        folderId: '1VsxWc_xVts9p7Upo10ZWLyUL4wfBMOzw'     // Folder ID uit stap 2
       }
     ],
     accessLevel: 'read'
