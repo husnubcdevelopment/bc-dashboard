@@ -18,9 +18,20 @@ const PROJECT_PERMISSIONS = {
       }
     ],
     accessLevel: 'read'
+  },
+ 'husnu@bcdevelopment.be': {
+    directAccess: true,
+    allowedProjects: [
+      {
+        name: 'Projects',              // Exacte naam uit Drive
+        folderId: '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw'     // Folder ID uit stap 2
+      }
+    ],
+    accessLevel: 'read'
   }
-  // Add more external users here with their own folder IDs
 };
+  // Add more external users here with their own folder IDs
+//};
 
 // Domain whitelist - users from these domains get full access via parent folder
 const ALLOWED_DOMAINS = ['bcimmo.be'];
