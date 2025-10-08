@@ -4,17 +4,25 @@
 window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
 window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Root folder ID - Your main "BC Development/Projects" folder
+// Root folder ID - Your main "BC Development/Projects" folder (for BC Immo users)
 const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
 
-// Project Permissions Configuration
+// Project Permissions Configuration - WITH DIRECT FOLDER IDS
 const PROJECT_PERMISSIONS = {
   'gtahusnu@gmail.com': {
-    allowedProjects: ['2025_DeVenne'],
+    directAccess: true, // Use direct folder access (bypasses parent folder)
+    allowedProjects: [
+      {
+        name: '2025_DeVenne',
+        folderId: '1VsxWc_xVts9p7Upo10ZWLyUL4wfBMOzw'
+      }
+    ],
     accessLevel: 'read'
   }
+  // Add more external users here with their own folder IDs
 };
-// Domain whitelist - users from these domains get full access
+
+// Domain whitelist - users from these domains get full access via parent folder
 const ALLOWED_DOMAINS = ['bcimmo.be'];
 
 // Categories Configuration
@@ -157,6 +165,10 @@ function checkUserAccess(userEmail, projectName) {
   const userPerms = PROJECT_PERMISSIONS[userEmail];
   if (!userPerms) return false;
   
+  if (userPerms.directAccess) {
+    return userPerms.allowedProjects.some(p => p.name === projectName);
+  }
+  
   return userPerms.allowedProjects.includes(projectName);
 }
 
@@ -171,5 +183,17 @@ function filterProjectsByAccess(projects, userEmail) {
   const userPerms = PROJECT_PERMISSIONS[userEmail];
   if (!userPerms) return [];
   
+  if (userPerms.directAccess) {
+    const allowedNames = userPerms.allowedProjects.map(p => p.name);
+    return projects.filter(p => allowedNames.includes(p.name));
+  }
+  
   return projects.filter(p => userPerms.allowedProjects.includes(p.name));
+}
+
+// NEW: Check if user has direct access (bypasses parent folder)
+function hasDirectAccess(userEmail) {
+  if (!userEmail) return false;
+  const userPerms = PROJECT_PERMISSIONS[userEmail];
+  return userPerms && userPerms.directAccess === true;
 }

@@ -20,7 +20,6 @@ async function listFilesRecursive(folderId, depth = 0, maxDepth = 3) {
   if (depth > maxDepth) return [];
   
   try {
-    // Get files in current folder
     const filesResponse = await gapi.client.drive.files.list({
       q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
       fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
@@ -30,13 +29,10 @@ async function listFilesRecursive(folderId, depth = 0, maxDepth = 3) {
     
     let allFiles = filesResponse.result.files || [];
     
-    // Get subfolders
     const subfolders = await listChildFolders(folderId);
     
-    // Recursively get files from subfolders
     for (const subfolder of subfolders) {
       const subFiles = await listFilesRecursive(subfolder.id, depth + 1, maxDepth);
-      // Add folder path to each file for better organization
       subFiles.forEach(file => {
         file.folderPath = subfolder.name + (file.folderPath ? '/' + file.folderPath : '');
       });
@@ -50,7 +46,7 @@ async function listFilesRecursive(folderId, depth = 0, maxDepth = 3) {
   }
 }
 
-// List files in a folder (with option for recursive)
+// List files in a folder
 async function listFiles(folderId, recursive = true) {
   if (recursive) {
     return await listFilesRecursive(folderId);
@@ -77,7 +73,6 @@ async function getFolderStructure(folderId) {
   };
   
   try {
-    // Get files
     const filesResponse = await gapi.client.drive.files.list({
       q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
       fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
@@ -85,7 +80,6 @@ async function getFolderStructure(folderId) {
     });
     structure.files = filesResponse.result.files || [];
     
-    // Get subfolders with their files
     const subfolders = await listChildFolders(folderId);
     for (const subfolder of subfolders) {
       const subFiles = await gapi.client.drive.files.list({
@@ -108,7 +102,63 @@ async function getFolderStructure(folderId) {
   }
 }
 
-// Discover all projects from the root Drive folder
+// NEW: Get folder metadata by ID
+async function getFolderMetadata(folderId) {
+  try {
+    const response = await gapi.client.drive.files.get({
+      fileId: folderId,
+      fields: 'id,name,modifiedTime'
+    });
+    return response.result;
+  } catch (e) {
+    console.error('getFolderMetadata error:', e);
+    return null;
+  }
+}
+
+// NEW: Discover projects using direct folder access (for external users)
+async function discoverProjectsFromDirectAccess(userEmail) {
+  const userPerms = PROJECT_PERMISSIONS[userEmail];
+  if (!userPerms || !userPerms.directAccess) {
+    return [];
+  }
+  
+  const result = [];
+  
+  for (const project of userPerms.allowedProjects) {
+    try {
+      // Get folder metadata
+      const metadata = await getFolderMetadata(project.folderId);
+      if (!metadata) continue;
+      
+      // Get child folders (categories)
+      const childFolders = await listChildFolders(project.folderId);
+      const folders = {};
+      
+      // Match folders to categories based on prefix
+      for (const [catId, regex] of Object.entries(CATEGORY_PREFIX)) {
+        const match = childFolders.find(f => regex.test(f.name));
+        if (match) {
+          folders[catId] = match.id;
+        }
+      }
+      
+      result.push({
+        id: project.folderId,
+        name: project.name,
+        modifiedTime: metadata.modifiedTime,
+        baseFolderId: project.folderId,
+        folders
+      });
+    } catch (e) {
+      console.error(`Error accessing project ${project.name}:`, e);
+    }
+  }
+  
+  return result;
+}
+
+// Discover all projects from the root Drive folder (for BC Immo users)
 async function discoverProjectsFromDrive() {
   if (typeof PROJECTS_ROOT_FOLDER_ID === 'undefined' || !PROJECTS_ROOT_FOLDER_ID) {
     console.warn('PROJECTS_ROOT_FOLDER_ID not defined');
@@ -122,7 +172,6 @@ async function discoverProjectsFromDrive() {
     const childFolders = await listChildFolders(proj.id);
     const folders = {};
     
-    // Match folders to categories based on prefix
     for (const [catId, regex] of Object.entries(CATEGORY_PREFIX)) {
       const match = childFolders.find(f => regex.test(f.name));
       if (match) {

@@ -66,20 +66,28 @@ async function handleAuthClick() {
     }
     
     // Discover projects from Drive
-    if (typeof PROJECTS_ROOT_FOLDER_ID !== 'undefined' && PROJECTS_ROOT_FOLDER_ID) {
-      const allProjects = await discoverProjectsFromDrive();
-      
-      // Filter projects based on user permissions
-      const accessibleProjects = filterProjectsByAccess(allProjects, window.CURRENT_USER_EMAIL);
-      
-      if (accessibleProjects.length === 0) {
-        showAccessDenied(`Geen toegang tot projecten voor ${window.CURRENT_USER_EMAIL}`);
-        return;
-      }
-      
-      window.DYNAMIC_PROJECTS = accessibleProjects;
-      renderProjectsOverview(accessibleProjects);
+    let allProjects = [];
+    
+    // Check if user has direct access (external users with specific folder IDs)
+    if (hasDirectAccess(window.CURRENT_USER_EMAIL)) {
+      console.log('Using direct folder access for:', window.CURRENT_USER_EMAIL);
+      allProjects = await discoverProjectsFromDirectAccess(window.CURRENT_USER_EMAIL);
+    } else if (typeof PROJECTS_ROOT_FOLDER_ID !== 'undefined' && PROJECTS_ROOT_FOLDER_ID) {
+      // Domain users: discover from parent folder
+      console.log('Using parent folder access for:', window.CURRENT_USER_EMAIL);
+      allProjects = await discoverProjectsFromDrive();
     }
+    
+    // Filter projects based on user permissions
+    const accessibleProjects = filterProjectsByAccess(allProjects, window.CURRENT_USER_EMAIL);
+    
+    if (accessibleProjects.length === 0) {
+      showAccessDenied(`Geen toegang tot projecten voor ${window.CURRENT_USER_EMAIL}`);
+      return;
+    }
+    
+    window.DYNAMIC_PROJECTS = accessibleProjects;
+    renderProjectsOverview(accessibleProjects);
     
     // Populate project selector
     await populateProjectSelector();
