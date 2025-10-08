@@ -14,7 +14,7 @@ const PROJECT_PERMISSIONS = {
     accessLevel: 'read'
   }
 };
-window.DYNAMIC_PROJECTS.forEach(p => console.log(p.name));
+
 // Domain whitelist - users from these domains get full access
 const ALLOWED_DOMAINS = ['bcimmo.be'];
 
