@@ -7,6 +7,24 @@ window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 // Root folder ID - Your main "BC Development/Projects" folder
 const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
 
+// **NEW: Project Permissions Configuration**
+// Define which email addresses have access to which projects
+const PROJECT_PERMISSIONS = {
+  // Example: Give access to specific projects by email
+  'gtahusnu@gmail.com': {
+    allowedProjects: ['2025_DeVenne'], // Array of project names they can access
+    accessLevel: 'read' // 'read' or 'write' (for future use)
+  },
+  'externe.partner@example.com': {
+    allowedProjects: ['Project Alpha', 'Project Beta'],
+    accessLevel: 'read'
+  }
+  // Users from @bcimmo.be domain have access to ALL projects (handled in code)
+};
+
+// Domain whitelist - users from these domains get full access
+const ALLOWED_DOMAINS = ['bcimmo.be'];
+
 // Categories Configuration
 const CONFIG = {
   projects: [],
@@ -134,3 +152,36 @@ const CATEGORY_PREFIX = {
   offertes: /^12[\s._-]/i,
   goedgekeurd: /^13[\s._-]/i
 };
+
+// **NEW: Permission Helper Functions**
+function checkUserAccess(userEmail, projectName) {
+  if (!userEmail) return false;
+  
+  // Check if user is from allowed domain (full access)
+  const domain = userEmail.split('@')[1];
+  if (ALLOWED_DOMAINS.includes(domain)) {
+    return true;
+  }
+  
+  // Check specific project permissions
+  const userPerms = PROJECT_PERMISSIONS[userEmail];
+  if (!userPerms) return false;
+  
+  return userPerms.allowedProjects.includes(projectName);
+}
+
+function filterProjectsByAccess(projects, userEmail) {
+  if (!userEmail) return [];
+  
+  // Check if user has full access (domain-based)
+  const domain = userEmail.split('@')[1];
+  if (ALLOWED_DOMAINS.includes(domain)) {
+    return projects; // Return all projects
+  }
+  
+  // Filter projects based on specific permissions
+  const userPerms = PROJECT_PERMISSIONS[userEmail];
+  if (!userPerms) return [];
+  
+  return projects.filter(p => userPerms.allowedProjects.includes(p.name));
+}
