@@ -14,7 +14,6 @@ const PROJECT_PERMISSIONS = {
     accessLevel: 'read'
   }
 };
-
 // Domain whitelist - users from these domains get full access
 const ALLOWED_DOMAINS = ['bcimmo.be'];
 
