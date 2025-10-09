@@ -62,7 +62,7 @@ async function populateProjectSelector() {
   const sel = document.getElementById('projectSelector');
   sel.innerHTML = '<option value="">-- Kies een project --</option>';
   
-  // Add static projects from config (if any)
+  // Add static projects from config
   CONFIG.projects.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
@@ -70,12 +70,14 @@ async function populateProjectSelector() {
     sel.appendChild(opt);
   });
   
-  if (window.DYNAMIC_PROJECTS && window.DYNAMIC_PROJECTS.length > 0) {
-    window.DYNAMIC_PROJECTS.forEach(p => {
+  // Add dynamic projects from Drive (with access control)
+  if (window.DYNAMIC_PROJECTS && window.CURRENT_USER_EMAIL) {
+    const accessibleProjects = filterProjectsByAccess(window.DYNAMIC_PROJECTS, window.CURRENT_USER_EMAIL);
+    
+    accessibleProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = `auto:${p.id}`;
-      const catCount = p.dynamicCategories?.length || 0;
-      opt.textContent = `${p.name} (${catCount} categorie${catCount !== 1 ? 'ën' : ''})`;
+      opt.textContent = `${p.name} (${p.dynamicCategories?.length || 0} categorieën)`;
       sel.appendChild(opt);
     });
   }
@@ -187,7 +189,7 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// **Refresh files with subfolder display**
+// Refresh files with subfolder display (SHOWS ALL SUBFOLDERS)
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
@@ -200,16 +202,18 @@ async function refreshFiles(folderId) {
   const subfolders = structure.subfolders;
 
   const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
+  const totalFolders = subfolders.length;
 
-  if (totalFiles === 0) {
-    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden gevonden</p>';
+  // Show message if completely empty (no files AND no subfolders)
+  if (totalFiles === 0 && totalFolders === 0) {
+    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
     return;
   }
 
   let html = `
     <div class="mb-3 flex justify-between items-center">
-      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en)</p>
-      <button onclick="refreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
+      <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
         🔄 Vernieuwen
       </button>
     </div>
@@ -240,17 +244,33 @@ async function refreshFiles(folderId) {
     html += '</div></div>';
   }
 
-  // Display subfolders and their files
+  // ✨ Display ALL subfolders (even if empty)
   subfolders.forEach(subfolder => {
-    if (subfolder.files.length > 0) {
+    const fileCount = subfolder.files.length;
+    const isEmpty = fileCount === 0;
+    
+    html += `
+      <div class="mb-4">
+        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          📁 ${subfolder.name} 
+          <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
+            ${fileCount} bestand(en)
+          </span>
+        </h4>
+    `;
+    
+    if (isEmpty) {
+      // Show empty state for subfolders without files
       html += `
-        <div class="mb-4">
-          <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            📁 ${subfolder.name} 
-            <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">${subfolder.files.length} bestand(en)</span>
-          </h4>
-          <div class="space-y-2 pl-4 border-l-2 border-gray-200">
+        <div class="pl-4 border-l-2 border-gray-200">
+          <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm">
+            📭 Nog geen bestanden in deze map
+          </div>
+        </div>
       `;
+    } else {
+      // Show files in subfolder
+      html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
       
       subfolder.files.forEach(f => {
         const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
@@ -272,11 +292,13 @@ async function refreshFiles(folderId) {
         `;
       });
       
-      html += '</div></div>';
+      html += '</div>';
     }
+    
+    html += '</div>';
   });
 
-  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s</p>';
+  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 15s • Klik 🔄 voor directe update</p>';
   box.innerHTML = html;
 }
 

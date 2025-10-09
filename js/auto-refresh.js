@@ -10,7 +10,7 @@ const AutoRefreshManager = {
   config: {
     projectsInterval: 60000,    // Check projects every 60s
     categoriesInterval: 30000,  // Check categories every 30s
-    filesInterval: 20000        // Check files every 20s (when modal open)
+    filesInterval: 15000        // Check files every 15s (when modal open)
   },
 
   isEnabled: true,
@@ -57,28 +57,18 @@ const AutoRefreshManager = {
   async refreshProjects() {
     console.log('🔍 Checking for project updates...');
 
-    let updatedProjects;
-
-    // Use appropriate method based on user access
-    if (hasDirectAccess(window.CURRENT_USER_EMAIL)) {
-      updatedProjects = await discoverProjectsFromDirectAccess(window.CURRENT_USER_EMAIL);
-    } else if (typeof PROJECTS_ROOT_FOLDER_ID !== 'undefined' && PROJECTS_ROOT_FOLDER_ID) {
-      updatedProjects = await discoverProjectsFromDrive();
-    } else {
-      return;
-    }
-
-    const accessibleProjects = filterProjectsByAccess(updatedProjects, window.CURRENT_USER_EMAIL);
+    // Fetch fresh projects using dynamic discovery
+    const updatedProjects = await discoverProjects();
 
     // Check if anything changed
-    const hasChanges = this._detectProjectChanges(window.DYNAMIC_PROJECTS, accessibleProjects);
+    const hasChanges = this._detectProjectChanges(window.DYNAMIC_PROJECTS, updatedProjects);
 
     if (hasChanges) {
       console.log('✨ Projects changed - updating UI');
-      window.DYNAMIC_PROJECTS = accessibleProjects;
+      window.DYNAMIC_PROJECTS = updatedProjects;
       
       // Update projects overview
-      renderProjectsOverview(accessibleProjects);
+      renderProjectsOverview(updatedProjects);
       
       // Update dropdown
       await populateProjectSelector();
