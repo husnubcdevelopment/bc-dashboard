@@ -189,7 +189,7 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// Refresh files with subfolder display (UPDATED VERSION)
+// **Refresh files with subfolder display**
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
@@ -202,17 +202,15 @@ async function refreshFiles(folderId) {
   const subfolders = structure.subfolders;
 
   const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
-  const totalFolders = subfolders.length;
 
-  // Show message if completely empty (no files AND no subfolders)
-  if (totalFiles === 0 && totalFolders === 0) {
-    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
+  if (totalFiles === 0) {
+    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden gevonden</p>';
     return;
   }
 
   let html = `
     <div class="mb-3 flex justify-between items-center">
-      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
+      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en)</p>
       <button onclick="refreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
         🔄 Vernieuwen
       </button>
@@ -244,33 +242,17 @@ async function refreshFiles(folderId) {
     html += '</div></div>';
   }
 
-  // ✨ Display ALL subfolders (even if empty)
+  // Display subfolders and their files
   subfolders.forEach(subfolder => {
-    const fileCount = subfolder.files.length;
-    const isEmpty = fileCount === 0;
-    
-    html += `
-      <div class="mb-4">
-        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          📁 ${subfolder.name} 
-          <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
-            ${fileCount} bestand(en)
-          </span>
-        </h4>
-    `;
-    
-    if (isEmpty) {
-      // Show empty state for subfolders without files
+    if (subfolder.files.length > 0) {
       html += `
-        <div class="pl-4 border-l-2 border-gray-200">
-          <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm">
-            📭 Nog geen bestanden in deze map
-          </div>
-        </div>
+        <div class="mb-4">
+          <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            📁 ${subfolder.name} 
+            <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">${subfolder.files.length} bestand(en)</span>
+          </h4>
+          <div class="space-y-2 pl-4 border-l-2 border-gray-200">
       `;
-    } else {
-      // Show files in subfolder
-      html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
       
       subfolder.files.forEach(f => {
         const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
@@ -292,10 +274,8 @@ async function refreshFiles(folderId) {
         `;
       });
       
-      html += '</div>';
+      html += '</div></div>';
     }
-    
-    html += '</div>';
   });
 
   html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s</p>';
@@ -309,4 +289,40 @@ function closeModal() {
     clearInterval(refreshInterval);
     refreshInterval = null;
   }
+}
+
+// Force refresh files (bypass cache)
+async function forceRefreshFiles(folderId) {
+  console.log('🔄 Force refresh - clearing cache for:', folderId);
+  
+  // Clear cache for this folder
+  CacheManager.remove('structure', folderId);
+  CacheManager.remove('files', folderId);
+  CacheManager.remove('folders', folderId);
+  
+  // Show loading
+  const box = document.getElementById('filesContainer');
+  if (box) {
+    box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
+  }
+  
+  // Refresh with fresh data
+  await refreshFiles(folderId);
+  
+  // Show notification
+  showTempNotification('✨ Bestanden vernieuwd');
+}
+
+// Show temporary notification
+function showTempNotification(message) {
+  const notif = document.createElement('div');
+  notif.className = 'fixed top-20 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-slide-in';
+  notif.textContent = message;
+  document.body.appendChild(notif);
+  
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.transform = 'translateX(100%)';
+    setTimeout(() => notif.remove(), 300);
+  }, 2000);
 }

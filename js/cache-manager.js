@@ -4,9 +4,9 @@
 const CacheManager = {
   // Cache expiry times (in milliseconds)
   EXPIRY: {
-    PROJECTS: 5 * 60 * 1000,      // 5 minutes
-    CATEGORIES: 10 * 60 * 1000,   // 10 minutes
-    FILES: 2 * 60 * 1000,         // 2 minutes (files change more often)
+    PROJECTS: 3 * 60 * 1000,      // 3 minutes (projecten veranderen zelden)
+    CATEGORIES: 5 * 60 * 1000,    // 5 minutes (categorieën veranderen zelden)
+    FILES: 30 * 1000,             // 30 seconds (bestanden veranderen vaak)
     USER_INFO: 24 * 60 * 60 * 1000 // 24 hours
   },
 
