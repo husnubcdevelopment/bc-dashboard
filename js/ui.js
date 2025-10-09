@@ -3,6 +3,13 @@
 let selectedProject = null;
 let refreshInterval = null;
 
+// Filter projects based on user access
+function filterProjectsByAccess(projects, userEmail) {
+  // For now, return all projects
+  // You can add access control logic here later if needed
+  return projects || [];
+}
+
 // **FIXED: Render projects overview grid with DYNAMIC category counting**
 function renderProjectsOverview(projects) {
   const root = document.getElementById('projectsOverview');
