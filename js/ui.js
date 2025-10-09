@@ -3,42 +3,36 @@
 let selectedProject = null;
 let refreshInterval = null;
 
-// Render projects overview grid with access control
+// **FIXED: Render projects overview grid with DYNAMIC category counting**
 function renderProjectsOverview(projects) {
   const root = document.getElementById('projectsOverview');
   
   if (!projects || !projects.length) {
-    root.innerHTML = '<div class="text-gray-500">Geen projecten gevonden of geen toegang.</div>';
+    root.innerHTML = '<div class="text-gray-500 text-center py-8">Geen projecten gevonden of geen toegang.</div>';
     return;
   }
 
-  const categoryLabel = id => {
-    const c = CONFIG.categories.find(x => x.id === id);
-    return c ? c.title : id;
-  };
-
-  const calcCompleteness = map => {
-    const total = Object.keys(CATEGORY_PREFIX).length;
-    const present = Object.keys(map).length;
-    return { present, total, pct: Math.round((present / total) * 100) };
-  };
+  console.log('Rendering projects overview with', projects.length, 'projects');
 
   root.innerHTML = projects.map(p => {
-    const { present, total, pct } = calcCompleteness(p.folders);
-    const missing = Object.keys(CATEGORY_PREFIX).filter(k => !p.folders[k]).slice(0, 3);
-    const missHtml = missing.length
-      ? `<div class="mt-2 text-xs text-amber-700">Ontbreekt: ${missing.map(categoryLabel).join(', ')}${missing.length >= 3 ? '…' : ''}</div>`
-      : `<div class="mt-2 text-xs text-green-700">Alle categorieën aanwezig</div>`;
+    // Use dynamic categories from the project
+    const categories = p.dynamicCategories || [];
+    const present = categories.length;
+    
+    // Progress based on expected 14 categories (adjust this number as needed)
+    const expectedTotal = 14;
+    const pct = expectedTotal > 0 ? Math.round((present / expectedTotal) * 100) : 0;
 
-    const quick = Object.entries(p.folders).slice(0, 4).map(([cid, fid]) =>
+    // Show first 3 categories as quick links
+    const quick = categories.slice(0, 4).map(cat =>
       `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
-        onclick="showFilesModal(CONFIG.categories.find(c=>c.id==='${cid}'),'${fid}')">
-        ${categoryLabel(cid)}
+        onclick="showFilesModal(${JSON.stringify(cat).replace(/"/g, '&quot;')},'${cat._folderId}')">
+        ${cat.icon} ${cat.title.replace(/^\d{1,2}[\s._-]/, '')}
       </button>`
     ).join(' ');
 
     return `
-      <div class="bg-white rounded-xl shadow p-5 border">
+      <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow">
         <div class="flex items-start justify-between mb-3">
           <div>
             <div class="text-lg font-bold">${p.name}</div>
@@ -46,22 +40,24 @@ function renderProjectsOverview(projects) {
           </div>
           <button class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
             onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">
-            Open hoofdmap
+            📂 Open hoofdmap
           </button>
         </div>
-        <div class="text-sm mb-2">${present}/${total} categorieën</div>
-        <div class="w-full h-2 bg-gray-200 rounded">
-          <div class="h-2 bg-blue-500 rounded" style="width:${pct}%"></div>
+        <div class="text-sm mb-2 font-medium">${present} categorie${present !== 1 ? 'ën' : ''} aanwezig</div>
+        <div class="w-full h-2 bg-gray-200 rounded mb-3">
+          <div class="h-2 bg-green-500 rounded transition-all" style="width:${pct}%"></div>
         </div>
-        ${missHtml}
-        <div class="mt-3 flex flex-wrap gap-2">${quick}</div>
+        ${categories.length > 0 
+          ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
+          : `<div class="text-xs text-amber-600 mt-2">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
+        }
       </div>
     `;
   }).join('');
 }
 
 // Populate project selector dropdown with access control
-function populateProjectSelector() {
+async function populateProjectSelector() {
   const sel = document.getElementById('projectSelector');
   sel.innerHTML = '<option value="">-- Kies een project --</option>';
   
@@ -80,7 +76,7 @@ function populateProjectSelector() {
     accessibleProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = `auto:${p.id}`;
-      opt.textContent = p.name;
+      opt.textContent = `${p.name} (${p.dynamicCategories?.length || 0} categorieën)`;
       sel.appendChild(opt);
     });
   }
@@ -89,23 +85,25 @@ function populateProjectSelector() {
 // Show project info banner
 function showProjectInfo(project) {
   const el = document.getElementById('projectInfo');
-  el.className = 'mb-6 max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow p-6';
+  const categoryCount = project.dynamicCategories?.length || 0;
+  
+  el.className = 'mb-6 max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg p-6';
   el.innerHTML = `
     <div class="flex justify-between items-center">
       <div>
         <h2 class="text-2xl font-bold mb-1">📁 ${project.name}</h2>
-        <p class="text-blue-100">Template Structuur • Status: Actief</p>
+        <p class="text-blue-100">${categoryCount} Categorie${categoryCount !== 1 ? 'ën' : ''} • Status: Actief</p>
       </div>
       <button onclick="window.open('https://drive.google.com/drive/folders/${project.baseFolderId}','_blank')"
-        class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50">
+        class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors">
         🗂️ Open hoofdmap
       </button>
     </div>
   `;
 }
 
-// Render categories grid (now supports dynamic categories)
-async function renderCategories(categories, project) {  // ← Voeg 'async' toe!
+// **FIXED: Render categories grid with dynamic categories**
+function renderCategories(categories, project) {
   const grid = document.getElementById('categoriesGrid');
   grid.innerHTML = '';
 
@@ -114,36 +112,31 @@ async function renderCategories(categories, project) {  // ← Voeg 'async' toe!
     return;
   }
 
-  const isAuth = gapi.client.getToken() !== null;
-  
-  // Use dynamic categories if available
-  const categoriesToRender = project.dynamicCategories || categories;
+  if (!categories || categories.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full text-center py-10">
+        <div class="text-gray-400 mb-2">📭 Geen categorieën gevonden in dit project</div>
+        <div class="text-sm text-gray-500">Maak mappen aan in Drive met nummering (bijv. "1_Prospectie", "2_Overeenkomsten")</div>
+      </div>
+    `;
+    return;
+  }
 
-  // Process each category
-  for (const cat of categoriesToRender) {  // ← Verander forEach naar for...of
+  const isAuth = gapi.client.getToken() !== null;
+
+  categories.forEach(cat => {
     const card = document.createElement('div');
-    const folderId = cat._folderId || (project.folders ? project.folders[cat.id] : null);
+    const folderId = cat._folderId; // Use the folder ID stored in the category
     card.className = `category-card ${cat.colorClass} border-2 rounded-xl shadow p-5`;
 
     if (folderId && isAuth) {
       card.onclick = () => showFilesModal(cat, folderId);
     }
 
-    // Get subfolders dynamically
-    let items = cat.items || [];
-    if (folderId && isAuth && items.length === 0) {
-      try {
-        const subfolders = await listChildFolders(folderId);  // ← Dit werkt nu!
-        items = subfolders.map(sf => sf.name);
-      } catch (e) {
-        console.error('Error loading subfolders for', cat.title, ':', e);
-      }
-    }
-
     let itemsHTML = '';
-    if (items.length > 0) {
+    if (cat.items?.length) {
       itemsHTML = '<ul class="space-y-2 mt-2">';
-      items.forEach(it => {
+      cat.items.forEach(it => {
         itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4 border-current">${it}</li>`;
       });
       itemsHTML += '</ul>';
@@ -151,10 +144,10 @@ async function renderCategories(categories, project) {  // ← Voeg 'async' toe!
 
     const badge = folderId && isAuth
       ? '<span class="text-xs bg-white/90 px-2 py-1 rounded-full font-medium">📂 Bekijk bestanden</span>'
-      : '<span class="text-xs bg-red-100 px-2 py-1 rounded-full font-medium text-red-600">⚠️ Login / map ontbreekt</span>';
+      : '<span class="text-xs bg-red-100 px-2 py-1 rounded-full font-medium text-red-600">⚠️ Login vereist</span>';
 
     card.innerHTML = `
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-3">
           <span class="text-2xl">${cat.icon}</span>
           <h3 class="text-lg font-bold">${cat.title}</h3>
@@ -165,10 +158,10 @@ async function renderCategories(categories, project) {  // ← Voeg 'async' toe!
     `;
 
     grid.appendChild(card);
-  }
+  });
 }
 
-// **UPDATED: Show files modal with subfolder support**
+// **Show files modal with subfolder support**
 async function showFilesModal(category, mainFolderId) {
   const modal = document.getElementById('fileModal');
   const title = document.getElementById('modalTitle');
@@ -184,7 +177,7 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// **UPDATED: Refresh files with subfolder display**
+// **Refresh files with subfolder display**
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
