@@ -128,6 +128,12 @@ async function discoverCategoriesFromProject(projectFolderId) {
   return buildDynamicCategories(categoryFolders);
 }
 
+// NEW: Get subfolders for a category (for populating items)
+async function getSubfoldersForCategory(categoryFolderId) {
+  const subfolders = await listChildFolders(categoryFolderId);
+  return subfolders.map(sf => sf.name);
+}
+
 // Discover projects using direct folder access (for external users)
 async function discoverProjectsFromDirectAccess(userEmail) {
   const userPerms = PROJECT_PERMISSIONS[userEmail];

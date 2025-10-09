@@ -4,7 +4,7 @@
 window.DYNAMIC_PROJECTS = [];
 
 // Project selector change handler
-document.getElementById('projectSelector').addEventListener('change', e => {
+document.getElementById('projectSelector').addEventListener('change', async e => {
   const id = e.target.value;
   let p = CONFIG.projects.find(x => x.id === id);
   
@@ -19,21 +19,29 @@ document.getElementById('projectSelector').addEventListener('change', e => {
   if (selectedProject) {
     showProjectInfo(selectedProject);
     document.getElementById('projectInfo').classList.remove('hidden');
-    renderCategories(CONFIG.categories, selectedProject);
+    
+    // Use dynamic categories if available
+    const categoriesToUse = selectedProject.dynamicCategories || CONFIG.categories;
+    await renderCategories(categoriesToUse, selectedProject);
   } else {
     document.getElementById('projectInfo').classList.add('hidden');
-    renderCategories(CONFIG.categories, null);
+    await renderCategories(CONFIG.categories, null);
   }
 });
 
 // Search functionality
-document.getElementById('searchInput').addEventListener('input', e => {
+document.getElementById('searchInput').addEventListener('input', async e => {
   const q = e.target.value.toLowerCase();
-  const filtered = CONFIG.categories.filter(c =>
+  
+  // Get categories to search
+  const categoriesToSearch = selectedProject?.dynamicCategories || CONFIG.categories;
+  
+  const filtered = categoriesToSearch.filter(c =>
     c.title.toLowerCase().includes(q) ||
-    c.items.some(it => it.toLowerCase().includes(q))
+    (c.items && c.items.some(it => it.toLowerCase().includes(q)))
   );
-  renderCategories(filtered, selectedProject);
+  
+  await renderCategories(filtered, selectedProject);
 });
 
 // Initialize application on page load

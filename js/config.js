@@ -10,7 +10,7 @@ const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
 // Project Permissions Configuration - WITH DIRECT FOLDER IDS
 const PROJECT_PERMISSIONS = {
   'gtahusnu@gmail.com': {
-    directAccess: true, // Use direct folder access (bypasses parent folder)
+    directAccess: true,
     allowedProjects: [
       {
         name: '2025_DeVenne',
@@ -18,151 +18,105 @@ const PROJECT_PERMISSIONS = {
       }
     ],
     accessLevel: 'read'
-  },
- 'husnu@bcdevelopment.be': {
-    directAccess: true,
-    allowedProjects: [
-      {
-        name: '2025_DeVenne',              // Exacte naam uit Drive
-        folderId: '1VsxWc_xVts9p7Upo10ZWLyUL4wfBMOzw'     // Folder ID uit stap 2
-      }
-    ],
-    accessLevel: 'read'
   }
 };
-  // Add more external users here with their own folder IDs
-//};
 
 // Domain whitelist - users from these domains get full access via parent folder
 const ALLOWED_DOMAINS = ['bcimmo.be'];
 
-// Categories Configuration
-const CONFIG = {
-  projects: [],
-  categories: [
-    {
-      id: "prospectie",
-      title: "1. Prospectie",
-      icon: "📊",
-      colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200",
-      items: ["1.01 Haalbaarheidsanalyse"],
-      subfolders: []
-    },
-    {
-      id: "overeenkomsten",
-      title: "2. Overeenkomsten",
-      icon: "✅",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["2.01 Samenwerkingsovereenkomst"],
-      subfolders: []
-    },
-    {
-      id: "stakeholders",
-      title: "3. Stakeholders",
-      icon: "👥",
-      colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200",
-      items: ["3.01 Architect"],
-      subfolders: []
-    },
-    {
-      id: "financien",
-      title: "4. Financiën",
-      icon: "💰",
-      colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200",
-      items: ["4.01 Bank"],
-      subfolders: []
-    },
-    {
-      id: "plannen",
-      title: "5. Plannen",
-      icon: "🗺️",
-      colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200",
-      items: ["5.01 Uitvoeringsplan"],
-      subfolders: []
-    },
-    {
-      id: "omv",
-      title: "6. OMV",
-      icon: "🏢",
-      colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200",
-      items: ["6.01 CBS"],
-      subfolders: []
-    },
-    {
-      id: "akte",
-      title: "7. Akte",
-      icon: "📄",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["7.01 Basisakte", "7.02 Aankoopakte"],
-      subfolders: []
-    },
-    {
-      id: "juridisch",
-      title: "8. Juridisch",
-      icon: "⚖️",
-      colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200",
-      items: ["8.01 Contextanalyse"],
-      subfolders: []
-    },
-    {
-      id: "adviezen",
-      title: "9. Adviezen",
-      icon: "💡",
-      colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200",
-      items: ["9.01 Fluvius"],
-      subfolders: []
-    },
-    {
-      id: "marktonderzoek",
-      title: "10. Marktonderzoek",
-      icon: "📈",
-      colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200",
-      items: ["10.01 Projecten"],
-      subfolders: []
-    },
-    {
-      id: "verslagen",
-      title: "11. Verslagen",
-      icon: "📋",
-      colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200",
-      items: ["11.01 Werfverslagen", "11.02 Lobbyverslagen", "11.03 Teamverslagen", "11.04 Studiesverslagen", "11.05 Stadverslagen"],
-      subfolders: []
-    },
-    {
-      id: "offertes",
-      title: "12. Offertes",
-      icon: "📤",
-      colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200",
-      items: ["12.01 Studie", "12.02 Bouwrijpmaken", "12.03 Constructie", "12.04 Technieken", "12.05 Afwerking", "12.06 Omgevingsaanleg"],
-      subfolders: []
-    },
-    {
-      id: "goedgekeurd",
-      title: "13. Goedgekeurde Offertes",
-      icon: "✔️",
-      colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200",
-      items: [],
-      subfolders: []
-    }
-  ]
+// DYNAMIC CATEGORIES: Auto-discover from Drive + fallback definitions
+// De volgorde en standaard info voor bekende categorieën
+const CATEGORY_TEMPLATES = {
+  1: { icon: "📊", colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200" },
+  2: { icon: "✅", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
+  3: { icon: "👥", colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200" },
+  4: { icon: "💰", colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200" },
+  5: { icon: "🗺️", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
+  6: { icon: "🏢", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
+  7: { icon: "📄", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
+  8: { icon: "⚖️", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
+  9: { icon: "💡", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
+  10: { icon: "📈", colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200" },
+  11: { icon: "📋", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
+  12: { icon: "📤", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
+  13: { icon: "✔️", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
+  14: { icon: "📐", colorClass: "bg-teal-100 border-teal-400 text-teal-900 hover:bg-teal-200" },
+  15: { icon: "🔧", colorClass: "bg-pink-100 border-pink-400 text-pink-900 hover:bg-pink-200" },
+  // Voeg meer nummers toe als je wilt...
+  // Voor onbekende nummers wordt een default gebruikt
 };
 
-// Category prefix mapping for folder discovery
-const CATEGORY_PREFIX = {
-  prospectie: /^1[\s._-]/i,
-  overeenkomsten: /^2[\s._-]/i,
-  stakeholders: /^3[\s._-]/i,
-  financien: /^4[\s._-]/i,
-  plannen: /^5[\s._-]/i,
-  omv: /^6[\s._-]/i,
-  akte: /^7[\s._-]/i,
-  juridisch: /^8[\s._-]/i,
-  adviezen: /^9[\s._-]/i,
-  marktonderzoek: /^10[\s._-]/i,
-  verslagen: /^11[\s._-]/i,
-  offertes: /^12[\s._-]/i,
-  goedgekeurd: /^13[\s._-]/i
+// Default voor nieuwe/onbekende categorieën
+const DEFAULT_CATEGORY_STYLE = {
+  icon: "📁",
+  colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200"
 };
+
+// Categories Configuration - Now dynamically populated!
+const CONFIG = {
+  projects: [],
+  categories: [] // Wordt dynamisch gevuld vanuit Drive!
+};
+
+// Helper: Parse category number from folder name
+function parseCategoryNumber(folderName) {
+  // Matches: "1_", "01_", "1.", "01.", "1-", "01-", "1 "
+  const match = folderName.match(/^(\d{1,2})[\s._-]/);
+  return match ? parseInt(match[1]) : null;
+}
+
+// Helper: Create category ID from folder name
+function createCategoryId(folderName) {
+  // "1_Prospectie" -> "prospectie"
+  // "14_Goedgekeurde_Plannen" -> "goedgekeurde_plannen"
+  return folderName
+    .replace(/^\d{1,2}[\s._-]/, '') // Remove number prefix
+    .toLowerCase()
+    .replace(/[\s._-]+/g, '_'); // Replace spaces/dots/dashes with underscore
+}
+
+// Helper: Get category style (icon & color)
+function getCategoryStyle(categoryNumber) {
+  return CATEGORY_TEMPLATES[categoryNumber] || DEFAULT_CATEGORY_STYLE;
+}
+
+// Helper: Build categories dynamically from folders
+function buildDynamicCategories(folders) {
+  const categories = [];
+  const seenNumbers = new Set();
+  
+  // Sort folders by number
+  const sortedFolders = folders.sort((a, b) => {
+    const numA = parseCategoryNumber(a.name) || 999;
+    const numB = parseCategoryNumber(b.name) || 999;
+    return numA - numB;
+  });
+  
+  for (const folder of sortedFolders) {
+    const categoryNum = parseCategoryNumber(folder.name);
+    
+    // Skip if we've already seen this number (shouldn't happen but just in case)
+    if (categoryNum && seenNumbers.has(categoryNum)) continue;
+    if (categoryNum) seenNumbers.add(categoryNum);
+    
+    const id = createCategoryId(folder.name);
+    const style = getCategoryStyle(categoryNum);
+    
+    // Extract subfolder names (will be populated later when project is selected)
+    categories.push({
+      id: id,
+      title: folder.name,
+      icon: style.icon,
+      colorClass: style.colorClass,
+      items: [], // Will be populated with subfolders dynamically
+      subfolders: [],
+      _folderId: folder.id, // Store folder ID for later use
+      _categoryNumber: categoryNum
+    });
+  }
+  
+  return categories;
+}
 
 // Permission Helper Functions
 function checkUserAccess(userEmail, projectName) {
@@ -202,7 +156,7 @@ function filterProjectsByAccess(projects, userEmail) {
   return projects.filter(p => userPerms.allowedProjects.includes(p.name));
 }
 
-// NEW: Check if user has direct access (bypasses parent folder)
+// Check if user has direct access (bypasses parent folder)
 function hasDirectAccess(userEmail) {
   if (!userEmail) return false;
   const userPerms = PROJECT_PERMISSIONS[userEmail];
