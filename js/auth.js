@@ -1,5 +1,14 @@
 // BC Development Dashboard - Authentication Module WITH AUTO-REFRESH
 
+// Voeg toe aan auth.js - na line 1
+// Force refresh on OAuth errors
+window.addEventListener('error', (e) => {
+  if (e.message.includes('gapi') || e.message.includes('gis')) {
+    console.warn('OAuth loading error, clearing cache...');
+    CacheManager.clearAll();
+    setTimeout(() => location.reload(), 1000);
+  }
+});
 // Global state
 window.gapiInited = false;
 window.gisInited = false;
