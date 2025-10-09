@@ -187,8 +187,12 @@ async function discoverProjectsFromDrive() {
   const result = [];
   
   for (const proj of projects) {
+    console.log(`Discovering categories for project: ${proj.name}`);
+    
     // Build dynamic categories
     const categories = await discoverCategoriesFromProject(proj.id);
+    
+    console.log(`Found ${categories.length} categories for ${proj.name}:`, categories.map(c => c.title));
     
     // Build folders object for backward compatibility
     const folders = {};
@@ -206,6 +210,7 @@ async function discoverProjectsFromDrive() {
     });
   }
   
+  console.log('All discovered projects:', result);
   return result;
 }
 

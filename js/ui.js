@@ -77,10 +77,13 @@ function populateProjectSelector() {
   if (window.DYNAMIC_PROJECTS && window.CURRENT_USER_EMAIL) {
     const accessibleProjects = filterProjectsByAccess(window.DYNAMIC_PROJECTS, window.CURRENT_USER_EMAIL);
     
+    console.log('Accessible projects with categories:', accessibleProjects);
+    
     accessibleProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = `auto:${p.id}`;
-      opt.textContent = p.name;
+      const categoryCount = p.dynamicCategories ? p.dynamicCategories.length : '?';
+      opt.textContent = `${p.name} (${categoryCount} categorieën)`;
       sel.appendChild(opt);
     });
   }
