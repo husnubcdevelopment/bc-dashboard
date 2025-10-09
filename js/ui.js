@@ -23,13 +23,15 @@ function renderProjectsOverview(projects) {
     const expectedTotal = 14;
     const pct = expectedTotal > 0 ? Math.round((present / expectedTotal) * 100) : 0;
 
-    // Show first 3 categories as quick links
-    const quick = categories.slice(0, 4).map(cat =>
-      `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
-        onclick="showFilesModal(${JSON.stringify(cat).replace(/"/g, '&quot;')},'${cat._folderId}')">
-        ${cat.icon} ${cat.title.replace(/^\d{1,2}[\s._-]/, '')}
-      </button>`
-    ).join(' ');
+    // Show first 4 categories as quick links
+    const quick = categories.slice(0, 4).map(cat => {
+      // Remove number prefix for cleaner display
+      const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
+      return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
+        onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')">
+        ${cat.icon} ${cleanTitle}
+      </button>`;
+    }).join(' ');
 
     return `
       <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow">
@@ -38,14 +40,14 @@ function renderProjectsOverview(projects) {
             <div class="text-lg font-bold">${p.name}</div>
             <div class="text-xs text-gray-500">Laatst gewijzigd: ${new Date(p.modifiedTime).toLocaleDateString('nl-BE')}</div>
           </div>
-          <button class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"
+          <button class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors"
             onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">
             📂 Open hoofdmap
           </button>
         </div>
-        <div class="text-sm mb-2 font-medium">${present} categorie${present !== 1 ? 'ën' : ''} aanwezig</div>
+        <div class="text-sm mb-2 font-medium">${present}/${expectedTotal} categorieën</div>
         <div class="w-full h-2 bg-gray-200 rounded mb-3">
-          <div class="h-2 bg-green-500 rounded transition-all" style="width:${pct}%"></div>
+          <div class="h-2 ${pct >= 100 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'} rounded transition-all" style="width:${Math.min(pct, 100)}%"></div>
         </div>
         ${categories.length > 0 
           ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
@@ -159,6 +161,16 @@ function renderCategories(categories, project) {
 
     grid.appendChild(card);
   });
+}
+
+// **Helper function for quick category access from project cards**
+function showCategoryFiles(folderId, title, icon) {
+  const category = {
+    title: title,
+    icon: icon,
+    _folderId: folderId
+  };
+  showFilesModal(category, folderId);
 }
 
 // **Show files modal with subfolder support**
