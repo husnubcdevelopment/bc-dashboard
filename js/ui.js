@@ -119,6 +119,7 @@ async function renderCategories(categories, project) {
   // Use dynamic categories if available, otherwise fall back to CONFIG.categories
   const categoriesToRender = project.dynamicCategories || categories;
 
+  // Process each category
   for (const cat of categoriesToRender) {
     const card = document.createElement('div');
     const folderId = cat._folderId || (project.folders ? project.folders[cat.id] : null);
@@ -128,13 +129,14 @@ async function renderCategories(categories, project) {
       card.onclick = () => showFilesModal(cat, folderId);
     }
 
-    // Get subfolders dynamically if not already populated
+    // Get subfolders dynamically
     let items = cat.items || [];
-    if (folderId && items.length === 0 && isAuth) {
+    if (folderId && isAuth && items.length === 0) {
       try {
-        items = await getSubfoldersForCategory(folderId);
+        const subfolders = await listChildFolders(folderId);
+        items = subfolders.map(sf => sf.name);
       } catch (e) {
-        console.error('Error loading subfolders:', e);
+        console.error('Error loading subfolders for', cat.title, ':', e);
       }
     }
 
