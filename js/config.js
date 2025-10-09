@@ -1,31 +1,27 @@
-// BC Development Dashboard - Configuration
+// BC Development Dashboard - Configuration (DYNAMIC ACCESS)
 
 // Google OAuth Configuration
 window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
 window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Root folder ID - Your main "BC Development/Projects" folder (for BC Immo users)
+// Root folder ID - Your main "BC Development/Projects" folder
 const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
 
-// Project Permissions Configuration - WITH DIRECT FOLDER IDS
-const PROJECT_PERMISSIONS = {
-  'gtahusnu@gmail.com': {
-    directAccess: true,
-    allowedProjects: [
-      {
-        name: '2025_DeVenne',
-        folderId: '1VsxWc_xVts9p7Upo10ZWLyUL4wfBMOzw'
-      }
-    ],
-    accessLevel: 'read'
-  }
+// Owner email for filtering shared projects (optional but recommended)
+// This ensures we only show projects from BC Development, not random shared folders
+const OWNER_EMAIL = 'info@bcimmo.be'; // Change to your BC Development Google Workspace email
+
+// Project naming convention filters (optional - helps filter out non-project folders)
+// Adjust these based on your naming conventions
+const PROJECT_NAME_FILTERS = {
+  enabled: true,
+  patterns: [
+    /^\d{4}_/,        // Starts with year: 2025_ProjectName
+    /_[A-Z]/,         // Contains underscore + capital letter
+  ]
 };
 
-// Domain whitelist - users from these domains get full access via parent folder
-const ALLOWED_DOMAINS = ['bcimmo.be'];
-
 // DYNAMIC CATEGORIES: Auto-discover from Drive + fallback definitions
-// De volgorde en standaard info voor bekende categorieën
 const CATEGORY_TEMPLATES = {
   1: { icon: "📊", colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200" },
   2: { icon: "✅", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
@@ -49,33 +45,30 @@ const CATEGORY_TEMPLATES = {
   20: { icon: "🎨", colorClass: "bg-rose-100 border-rose-400 text-rose-900 hover:bg-rose-200" }
 };
 
-// Default voor nieuwe/onbekende categorieën
+// Default for unknown categories
 const DEFAULT_CATEGORY_STYLE = {
   icon: "📁",
   colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200"
 };
 
-// Categories Configuration - Now dynamically populated!
+// Categories Configuration
 const CONFIG = {
   projects: [],
-  categories: [] // Wordt dynamisch gevuld vanuit Drive!
+  categories: []
 };
 
 // Helper: Parse category number from folder name
 function parseCategoryNumber(folderName) {
-  // Matches: "1_", "01_", "1.", "01.", "1-", "01-", "1 ", "14_", etc.
   const match = folderName.match(/^(\d{1,2})[\s._-]/);
   return match ? parseInt(match[1]) : null;
 }
 
 // Helper: Create category ID from folder name
 function createCategoryId(folderName) {
-  // "1_Prospectie" -> "prospectie"
-  // "14_Goedgekeurde_Plannen" -> "goedgekeurde_plannen"
   return folderName
-    .replace(/^\d{1,2}[\s._-]/, '') // Remove number prefix
+    .replace(/^\d{1,2}[\s._-]/, '')
     .toLowerCase()
-    .replace(/[\s._-]+/g, '_'); // Replace spaces/dots/dashes with underscore
+    .replace(/[\s._-]+/g, '_');
 }
 
 // Helper: Get category style (icon & color)
@@ -88,7 +81,6 @@ function buildDynamicCategories(folders) {
   const categories = [];
   const seenNumbers = new Set();
   
-  // Sort folders by number
   const sortedFolders = folders.sort((a, b) => {
     const numA = parseCategoryNumber(a.name) || 999;
     const numB = parseCategoryNumber(b.name) || 999;
@@ -98,7 +90,6 @@ function buildDynamicCategories(folders) {
   for (const folder of sortedFolders) {
     const categoryNum = parseCategoryNumber(folder.name);
     
-    // Skip if we've already seen this number (shouldn't happen but just in case)
     if (categoryNum && seenNumbers.has(categoryNum)) continue;
     if (categoryNum) seenNumbers.add(categoryNum);
     
@@ -110,9 +101,9 @@ function buildDynamicCategories(folders) {
       title: folder.name,
       icon: style.icon,
       colorClass: style.colorClass,
-      items: [], // Will be populated with subfolders dynamically
+      items: [],
       subfolders: [],
-      _folderId: folder.id, // Store folder ID for later use
+      _folderId: folder.id,
       _categoryNumber: categoryNum
     });
   }
@@ -120,47 +111,9 @@ function buildDynamicCategories(folders) {
   return categories;
 }
 
-// Permission Helper Functions
-function checkUserAccess(userEmail, projectName) {
-  if (!userEmail) return false;
+// Helper: Check if folder name matches project naming conventions
+function matchesProjectNamingConvention(folderName) {
+  if (!PROJECT_NAME_FILTERS.enabled) return true;
   
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return true;
-  }
-  
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return false;
-  
-  if (userPerms.directAccess) {
-    return userPerms.allowedProjects.some(p => p.name === projectName);
-  }
-  
-  return userPerms.allowedProjects.includes(projectName);
-}
-
-function filterProjectsByAccess(projects, userEmail) {
-  if (!userEmail) return [];
-  
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return projects;
-  }
-  
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return [];
-  
-  if (userPerms.directAccess) {
-    const allowedNames = userPerms.allowedProjects.map(p => p.name);
-    return projects.filter(p => allowedNames.includes(p.name));
-  }
-  
-  return projects.filter(p => userPerms.allowedProjects.includes(p.name));
-}
-
-// Check if user has direct access (bypasses parent folder)
-function hasDirectAccess(userEmail) {
-  if (!userEmail) return false;
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  return userPerms && userPerms.directAccess === true;
+  return PROJECT_NAME_FILTERS.patterns.some(pattern => pattern.test(folderName));
 }

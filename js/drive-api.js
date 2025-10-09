@@ -1,8 +1,181 @@
-// BC Development Dashboard - Drive API Module WITH CACHING
+// BC Development Dashboard - Drive API Module (DYNAMIC ACCESS)
+
+// ===== USER & ACCESS DETECTION =====
+
+// Get current authenticated user
+async function getCurrentUser() {
+  try {
+    const response = await gapi.client.request({
+      path: 'https://www.googleapis.com/drive/v3/about',
+      params: { fields: 'user' }
+    });
+    return response.result.user;
+  } catch (e) {
+    console.error('Error getting current user:', e);
+    return null;
+  }
+}
+
+// Check if user has access to root folder
+async function hasAccessToRoot() {
+  if (!PROJECTS_ROOT_FOLDER_ID) return false;
+  
+  try {
+    await gapi.client.drive.files.get({
+      fileId: PROJECTS_ROOT_FOLDER_ID,
+      fields: 'id,name'
+    });
+    console.log('✓ User has access to root folder');
+    return true;
+  } catch (e) {
+    if (e.status === 404 || e.status === 403) {
+      console.log('✗ User does NOT have access to root folder');
+      return false;
+    }
+    console.error('Error checking root access:', e);
+    return false;
+  }
+}
+
+// ===== PROJECT DISCOVERY METHODS =====
+
+// Method 1: List projects from root folder (for admins/owners)
+async function listProjectsFromRoot() {
+  console.log('📂 Discovering projects from root folder...');
+  
+  try {
+    const response = await gapi.client.drive.files.list({
+      q: `'${PROJECTS_ROOT_FOLDER_ID}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'`,
+      fields: 'files(id,name,modifiedTime)',
+      orderBy: 'name'
+    });
+    
+    const folders = response.result.files || [];
+    console.log(`Found ${folders.length} folders in root`);
+    
+    // Filter by naming convention if enabled
+    const filtered = PROJECT_NAME_FILTERS.enabled
+      ? folders.filter(f => matchesProjectNamingConvention(f.name))
+      : folders;
+    
+    console.log(`After filtering: ${filtered.length} projects`);
+    return filtered;
+  } catch (e) {
+    console.error('Error listing projects from root:', e);
+    return [];
+  }
+}
+
+// Method 2: List projects shared with current user (for external users)
+async function listProjectsSharedWithMe(ownerEmail = OWNER_EMAIL) {
+  console.log('🔗 Discovering projects shared with me...');
+  
+  try {
+    // Build query
+    let query = `sharedWithMe and trashed=false and mimeType='application/vnd.google-apps.folder'`;
+    
+    // Add owner filter if provided
+    if (ownerEmail) {
+      query += ` and '${ownerEmail}' in owners`;
+    }
+    
+    // Add naming convention filter if enabled
+    if (PROJECT_NAME_FILTERS.enabled) {
+      // For year-based projects: name contains '2024_' or '2025_' etc.
+      const currentYear = new Date().getFullYear();
+      const years = [currentYear - 1, currentYear, currentYear + 1];
+      const yearFilters = years.map(y => `name contains '${y}_'`).join(' or ');
+      query += ` and (${yearFilters})`;
+    }
+    
+    console.log('Query:', query);
+    
+    const response = await gapi.client.drive.files.list({
+      q: query,
+      fields: 'files(id,name,modifiedTime,owners,shared)',
+      orderBy: 'name',
+      pageSize: 100
+    });
+    
+    const folders = response.result.files || [];
+    console.log(`Found ${folders.length} shared folders`);
+    
+    // Additional filtering by naming convention
+    const filtered = folders.filter(f => matchesProjectNamingConvention(f.name));
+    
+    console.log(`After naming filter: ${filtered.length} projects`);
+    return filtered;
+  } catch (e) {
+    console.error('Error listing shared projects:', e);
+    return [];
+  }
+}
+
+// ===== UNIFIED PROJECT DISCOVERY =====
+
+// Main discovery function - automatically chooses the right method
+async function discoverProjects() {
+  console.log('🔍 Starting project discovery...');
+  
+  const user = await getCurrentUser();
+  if (!user) {
+    console.error('Cannot discover projects: user not authenticated');
+    return [];
+  }
+  
+  window.CURRENT_USER_EMAIL = user.emailAddress;
+  console.log('Current user:', user.emailAddress);
+  
+  // Check access to root
+  const hasRoot = await hasAccessToRoot();
+  
+  // Choose discovery method
+  let projectFolders = [];
+  if (hasRoot) {
+    console.log('→ Using ROOT folder discovery (admin mode)');
+    projectFolders = await listProjectsFromRoot();
+  } else {
+    console.log('→ Using SHARED WITH ME discovery (external user mode)');
+    projectFolders = await listProjectsSharedWithMe();
+  }
+  
+  if (projectFolders.length === 0) {
+    console.warn('No projects found for this user');
+    return [];
+  }
+  
+  // Build full project objects with categories
+  const projects = [];
+  for (const folder of projectFolders) {
+    console.log(`Processing project: ${folder.name}`);
+    
+    const categories = await discoverCategoriesFromProject(folder.id);
+    console.log(`  → Found ${categories.length} categories`);
+    
+    // Build folders mapping
+    const folders = {};
+    for (const cat of categories) {
+      folders[cat.id] = cat._folderId;
+    }
+    
+    projects.push({
+      id: folder.id,
+      name: folder.name,
+      modifiedTime: folder.modifiedTime,
+      baseFolderId: folder.id,
+      folders: folders,
+      dynamicCategories: categories
+    });
+  }
+  
+  console.log(`✓ Discovery complete: ${projects.length} projects`);
+  return projects;
+}
+
+// ===== CATEGORY & FILE OPERATIONS (unchanged) =====
 
 // List child folders in a parent folder (WITH CACHE)
 async function listChildFolders(parentId, useCache = true) {
-  // Try cache first
   if (useCache) {
     const cached = CacheManager.get('folders', parentId, CacheManager.EXPIRY.CATEGORIES);
     if (cached) return cached;
@@ -16,10 +189,7 @@ async function listChildFolders(parentId, useCache = true) {
     });
     
     const folders = response.result.files || [];
-    
-    // Cache the result
     CacheManager.set('folders', parentId, folders);
-    
     return folders;
   } catch (e) {
     console.error('listChildFolders error:', e);
@@ -27,81 +197,38 @@ async function listChildFolders(parentId, useCache = true) {
   }
 }
 
-// List files recursively including all subfolders
-async function listFilesRecursive(folderId, depth = 0, maxDepth = 3) {
-  if (depth > maxDepth) return [];
-  
-  try {
-    const filesResponse = await gapi.client.drive.files.list({
-      q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
-      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
-      orderBy: 'modifiedTime desc',
-      pageSize: 100
-    });
-    
-    let allFiles = filesResponse.result.files || [];
-    
-    const subfolders = await listChildFolders(folderId);
-    
-    for (const subfolder of subfolders) {
-      const subFiles = await listFilesRecursive(subfolder.id, depth + 1, maxDepth);
-      subFiles.forEach(file => {
-        file.folderPath = subfolder.name + (file.folderPath ? '/' + file.folderPath : '');
-      });
-      allFiles = allFiles.concat(subFiles);
-    }
-    
-    return allFiles;
-  } catch (e) {
-    console.error('listFilesRecursive error:', e);
-    return [];
-  }
-}
-
-// List files in a folder (WITH CACHE)
-async function listFiles(folderId, recursive = true, useCache = true) {
-  // Try cache first
+// Discover categories dynamically from a project folder
+async function discoverCategoriesFromProject(projectFolderId, useCache = true) {
   if (useCache) {
-    const cached = CacheManager.get('files', folderId, CacheManager.EXPIRY.FILES);
+    const cached = CacheManager.get('categories', projectFolderId, CacheManager.EXPIRY.CATEGORIES);
     if (cached) return cached;
   }
 
-  let files;
+  const folders = await listChildFolders(projectFolderId, useCache);
   
-  if (recursive) {
-    files = await listFilesRecursive(folderId);
-  } else {
-    try {
-      const response = await gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and trashed=false`,
-        fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
-        orderBy: 'modifiedTime desc'
-      });
-      files = response.result.files || [];
-    } catch (e) {
-      console.error('listFiles error:', e);
-      files = [];
-    }
+  // Filter: only folders that start with a number
+  const categoryFolders = folders.filter(f => /^\d{1,2}[\s._-]/.test(f.name));
+  const categories = buildDynamicCategories(categoryFolders);
+  
+  // Populate subfolders as items
+  for (const category of categories) {
+    const subfolders = await listChildFolders(category._folderId, useCache);
+    category.items = subfolders.map(sf => sf.name);
+    category.subfolders = subfolders;
   }
   
-  // Cache the result
-  CacheManager.set('files', folderId, files);
-  
-  return files;
+  CacheManager.set('categories', projectFolderId, categories);
+  return categories;
 }
 
-// Get detailed folder structure with subfolders (WITH CACHE)
+// Get folder structure with subfolders
 async function getFolderStructure(folderId, useCache = true) {
-  // Try cache first
   if (useCache) {
     const cached = CacheManager.get('structure', folderId, CacheManager.EXPIRY.FILES);
     if (cached) return cached;
   }
 
-  const structure = {
-    files: [],
-    subfolders: []
-  };
+  const structure = { files: [], subfolders: [] };
   
   try {
     const filesResponse = await gapi.client.drive.files.list({
@@ -126,140 +253,12 @@ async function getFolderStructure(folderId, useCache = true) {
       });
     }
     
-    // Cache the result
     CacheManager.set('structure', folderId, structure);
-    
     return structure;
   } catch (e) {
     console.error('getFolderStructure error:', e);
     return structure;
   }
-}
-
-// Get folder metadata by ID
-async function getFolderMetadata(folderId) {
-  try {
-    const response = await gapi.client.drive.files.get({
-      fileId: folderId,
-      fields: 'id,name,modifiedTime'
-    });
-    return response.result;
-  } catch (e) {
-    console.error('getFolderMetadata error:', e);
-    return null;
-  }
-}
-
-// Discover categories dynamically from a project folder (WITH CACHE)
-async function discoverCategoriesFromProject(projectFolderId, useCache = true) {
-  // Try cache first
-  if (useCache) {
-    const cached = CacheManager.get('categories', projectFolderId, CacheManager.EXPIRY.CATEGORIES);
-    if (cached) return cached;
-  }
-
-  const folders = await listChildFolders(projectFolderId, useCache);
-  
-  // Filter: only folders that start with a number (1_, 2_, etc.)
-  const categoryFolders = folders.filter(f => {
-    return /^\d{1,2}[\s._-]/.test(f.name);
-  });
-  
-  const categories = buildDynamicCategories(categoryFolders);
-  
-  // Cache the result
-  CacheManager.set('categories', projectFolderId, categories);
-  
-  return categories;
-}
-
-// Get subfolders for a category (for populating items)
-async function getSubfoldersForCategory(categoryFolderId) {
-  const subfolders = await listChildFolders(categoryFolderId);
-  return subfolders.map(sf => sf.name);
-}
-
-// Discover projects using direct folder access (for external users)
-async function discoverProjectsFromDirectAccess(userEmail) {
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms || !userPerms.directAccess) {
-    return [];
-  }
-  
-  const result = [];
-  
-  for (const project of userPerms.allowedProjects) {
-    try {
-      const metadata = await getFolderMetadata(project.folderId);
-      if (!metadata) continue;
-      
-      // Check cache freshness
-      const needsRefresh = CacheManager.needsRefresh('project', project.folderId, metadata.modifiedTime);
-      
-      // Build dynamic categories
-      const categories = await discoverCategoriesFromProject(project.folderId, !needsRefresh);
-      
-      // Build folders object for backward compatibility
-      const folders = {};
-      for (const cat of categories) {
-        folders[cat.id] = cat._folderId;
-      }
-      
-      result.push({
-        id: project.folderId,
-        name: project.name,
-        modifiedTime: metadata.modifiedTime,
-        baseFolderId: project.folderId,
-        folders: folders,
-        dynamicCategories: categories
-      });
-    } catch (e) {
-      console.error(`Error accessing project ${project.name}:`, e);
-    }
-  }
-  
-  return result;
-}
-
-// Discover all projects from the root Drive folder (for BC Immo users)
-async function discoverProjectsFromDrive() {
-  if (typeof PROJECTS_ROOT_FOLDER_ID === 'undefined' || !PROJECTS_ROOT_FOLDER_ID) {
-    console.warn('PROJECTS_ROOT_FOLDER_ID not defined');
-    return [];
-  }
-  
-  const projects = await listChildFolders(PROJECTS_ROOT_FOLDER_ID);
-  const result = [];
-  
-  for (const proj of projects) {
-    console.log(`Discovering categories for project: ${proj.name}`);
-    
-    // Check cache freshness
-    const needsRefresh = CacheManager.needsRefresh('project', proj.id, proj.modifiedTime);
-    
-    // Build dynamic categories
-    const categories = await discoverCategoriesFromProject(proj.id, !needsRefresh);
-    
-    console.log(`Found ${categories.length} categories for ${proj.name}:`, categories.map(c => c.title));
-    
-    // Build folders object for backward compatibility
-    const folders = {};
-    for (const cat of categories) {
-      folders[cat.id] = cat._folderId;
-    }
-    
-    result.push({
-      id: proj.id,
-      name: proj.name,
-      modifiedTime: proj.modifiedTime,
-      baseFolderId: proj.id,
-      folders: folders,
-      dynamicCategories: categories
-    });
-  }
-  
-  console.log('All discovered projects:', result);
-  return result;
 }
 
 // Helper: Format file size

@@ -1,14 +1,5 @@
-// BC Development Dashboard - Authentication Module WITH AUTO-REFRESH
+// BC Development Dashboard - Authentication Module (DYNAMIC ACCESS)
 
-// Voeg toe aan auth.js - na line 1
-// Force refresh on OAuth errors
-window.addEventListener('error', (e) => {
-  if (e.message.includes('gapi') || e.message.includes('gis')) {
-    console.warn('OAuth loading error, clearing cache...');
-    CacheManager.clearAll();
-    setTimeout(() => location.reload(), 1000);
-  }
-});
 // Global state
 window.gapiInited = false;
 window.gisInited = false;
@@ -65,50 +56,32 @@ async function handleAuthClick() {
     // Hide auth banner
     document.getElementById('authBanner').classList.add('hidden');
     
-    // Load user info and check access
-    await loadUserInfo();
-    
-    // Check if user has any access
-    if (!window.CURRENT_USER_EMAIL) {
-      showAccessDenied('Kan gebruiker niet identificeren');
-      return;
-    }
-    
     // Show loading state
     document.getElementById('projectsOverview').innerHTML = 
       '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
     
-    // Discover projects from Drive
-    let allProjects = [];
+    // Discover projects dynamically (auto-detects access level)
+    const allProjects = await discoverProjects();
     
-    // Check if user has direct access (external users with specific folder IDs)
-    if (hasDirectAccess(window.CURRENT_USER_EMAIL)) {
-      console.log('Using direct folder access for:', window.CURRENT_USER_EMAIL);
-      allProjects = await discoverProjectsFromDirectAccess(window.CURRENT_USER_EMAIL);
-    } else if (typeof PROJECTS_ROOT_FOLDER_ID !== 'undefined' && PROJECTS_ROOT_FOLDER_ID) {
-      // Domain users: discover from parent folder
-      console.log('Using parent folder access for:', window.CURRENT_USER_EMAIL);
-      allProjects = await discoverProjectsFromDrive();
-    }
-    
-    // Filter projects based on user permissions
-    const accessibleProjects = filterProjectsByAccess(allProjects, window.CURRENT_USER_EMAIL);
-    
-    if (accessibleProjects.length === 0) {
-      showAccessDenied(`Geen toegang tot projecten voor ${window.CURRENT_USER_EMAIL}`);
+    if (allProjects.length === 0) {
+      showNoAccess();
       return;
     }
     
-    window.DYNAMIC_PROJECTS = accessibleProjects;
-    renderProjectsOverview(accessibleProjects);
+    // Display user info
+    await displayUserInfo(allProjects.length);
+    
+    // Store and render projects
+    window.DYNAMIC_PROJECTS = allProjects;
+    renderProjectsOverview(allProjects);
     
     // Populate project selector
     await populateProjectSelector();
     
-    // 🚀 START AUTO-REFRESH
+    // Start auto-refresh
     AutoRefreshManager.startProjectsRefresh();
     
-    // Show cache stats in console
+    // Show cache stats
     const stats = CacheManager.getStats();
     console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
   };
@@ -121,68 +94,58 @@ async function handleAuthClick() {
   }
 }
 
-// Show access denied message
-function showAccessDenied(message) {
+// Show no access message
+function showNoAccess() {
   const banner = document.getElementById('authBanner');
   banner.classList.remove('hidden');
-  banner.className = 'bg-red-50 border-b border-red-300 p-3 text-center';
+  banner.className = 'bg-amber-50 border-b border-amber-300 p-4 text-center';
   banner.innerHTML = `
-    <span class="text-red-800 font-medium">🚫 ${message}</span>
-    <p class="text-sm text-red-600 mt-1">Neem contact op met de beheerder voor toegang.</p>
+    <div class="max-w-2xl mx-auto">
+      <h3 class="font-bold text-amber-800 mb-2">📭 Geen projecten gevonden</h3>
+      <p class="text-sm text-amber-700 mb-3">
+        Je hebt momenteel geen toegang tot projecten van BC Development.
+      </p>
+      <div class="text-xs text-left bg-white p-3 rounded space-y-1">
+        <p class="font-medium text-gray-700">Mogelijke oorzaken:</p>
+        <ul class="list-disc list-inside text-gray-600 space-y-1">
+          <li>Er zijn nog geen projecten met je gedeeld</li>
+          <li>Je gebruikt een ander Google-account dan verwacht</li>
+          <li>De gedeelde projecten zijn verwijderd of ingetrokken</li>
+        </ul>
+      </div>
+      <p class="text-sm text-amber-700 mt-3">
+        Neem contact op met BC Development om toegang te krijgen.
+      </p>
+      <button onclick="handleSignOut()" class="mt-3 text-sm text-amber-600 hover:text-amber-800 underline">
+        Uitloggen en opnieuw proberen
+      </button>
+    </div>
   `;
   
   document.getElementById('projectsOverview').innerHTML = 
-    `<div class="text-red-500 text-center">Geen toegang. Neem contact op met BC Development.</div>`;
+    `<div class="col-span-full text-center py-10 text-gray-500">
+      <div class="text-4xl mb-3">📭</div>
+      <div>Geen projecten beschikbaar voor dit account</div>
+    </div>`;
 }
 
-// Load and display user information
-async function loadUserInfo() {
-  try {
-    // Try cache first
-    const cachedUser = CacheManager.get('user', 'current', CacheManager.EXPIRY.USER_INFO);
-    if (cachedUser) {
-      window.CURRENT_USER_EMAIL = cachedUser.emailAddress;
-      displayUserInfo(cachedUser);
-      return;
-    }
-
-    const response = await gapi.client.request({
-      path: 'https://www.googleapis.com/drive/v3/about',
-      params: { fields: 'user' }
-    });
-    
-    const user = response.result.user;
-    window.CURRENT_USER_EMAIL = user.emailAddress;
-    
-    // Cache user info
-    CacheManager.set('user', 'current', user);
-    
-    displayUserInfo(user);
-  } catch (e) {
-    console.error('Error loading user info:', e);
-    window.CURRENT_USER_EMAIL = null;
-  }
-}
-
-// Display user information with access badge
-function displayUserInfo(user) {
-  // Check if user has access
-  const domain = user.emailAddress.split('@')[1];
-  const hasFullAccess = ALLOWED_DOMAINS.includes(domain);
-  const hasLimitedAccess = PROJECT_PERMISSIONS[user.emailAddress];
+// Display user information
+async function displayUserInfo(projectCount) {
+  if (!window.CURRENT_USER_EMAIL) return;
+  
+  const hasRoot = await hasAccessToRoot();
   
   let accessBadge = '';
-  if (hasFullAccess) {
-    accessBadge = '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Volledige toegang</span>';
-  } else if (hasLimitedAccess) {
-    const projectCount = hasLimitedAccess.allowedProjects.length;
-    accessBadge = `<span class="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Toegang tot ${projectCount} project(en)</span>`;
+  if (hasRoot) {
+    accessBadge = '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Admin - Volledige toegang</span>';
+  } else {
+    accessBadge = `<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Toegang tot ${projectCount} project${projectCount !== 1 ? 'en' : ''}</span>`;
   }
   
   document.getElementById('userInfo').innerHTML = `
     <span class="inline-flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
       <span class="pulse-dot"></span>
-      <span class="font-medium text-green-800">Verbonden als ${user.displayName}</span>
+      <span class="font-medium text-green-800">${window.CURRENT_USER_EMAIL}</span>
       ${accessBadge}
     </span>
   `;
@@ -204,8 +167,17 @@ function handleSignOut() {
   
   // Reset UI
   document.getElementById('authBanner').classList.remove('hidden');
+  document.getElementById('authBanner').className = 'bg-blue-50 border-b border-blue-300 p-3 text-center';
+  document.getElementById('authBanner').innerHTML = `
+    <button onclick="handleAuthClick()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
+      🔐 Log in met Google
+    </button>
+  `;
   document.getElementById('userInfo').innerHTML = '';
+  document.getElementById('projectsOverview').innerHTML = 
+    '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
   window.CURRENT_USER_EMAIL = null;
+  window.DYNAMIC_PROJECTS = [];
   
   console.log('✓ Signed out and cache cleared');
 }
