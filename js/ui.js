@@ -62,7 +62,7 @@ async function populateProjectSelector() {
   const sel = document.getElementById('projectSelector');
   sel.innerHTML = '<option value="">-- Kies een project --</option>';
   
-  // Add static projects from config
+  // Add static projects from config (if any)
   CONFIG.projects.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
@@ -70,14 +70,12 @@ async function populateProjectSelector() {
     sel.appendChild(opt);
   });
   
-  // Add dynamic projects from Drive (with access control)
-  if (window.DYNAMIC_PROJECTS && window.CURRENT_USER_EMAIL) {
-    const accessibleProjects = filterProjectsByAccess(window.DYNAMIC_PROJECTS, window.CURRENT_USER_EMAIL);
-    
-    accessibleProjects.forEach(p => {
+  if (window.DYNAMIC_PROJECTS && window.DYNAMIC_PROJECTS.length > 0) {
+    window.DYNAMIC_PROJECTS.forEach(p => {
       const opt = document.createElement('option');
       opt.value = `auto:${p.id}`;
-      opt.textContent = `${p.name} (${p.dynamicCategories?.length || 0} categorieën)`;
+      const catCount = p.dynamicCategories?.length || 0;
+      opt.textContent = `${p.name} (${catCount} categorie${catCount !== 1 ? 'ën' : ''})`;
       sel.appendChild(opt);
     });
   }
