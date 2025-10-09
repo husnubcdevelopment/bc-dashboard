@@ -102,7 +102,7 @@ async function getFolderStructure(folderId) {
   }
 }
 
-// NEW: Get folder metadata by ID
+// Get folder metadata by ID
 async function getFolderMetadata(folderId) {
   try {
     const response = await gapi.client.drive.files.get({
@@ -116,7 +116,19 @@ async function getFolderMetadata(folderId) {
   }
 }
 
-// NEW: Discover projects using direct folder access (for external users)
+// NEW: Discover categories dynamically from a project folder
+async function discoverCategoriesFromProject(projectFolderId) {
+  const folders = await listChildFolders(projectFolderId);
+  
+  // Filter: only folders that start with a number (1_, 2_, etc.)
+  const categoryFolders = folders.filter(f => {
+    return /^\d{1,2}[\s._-]/.test(f.name);
+  });
+  
+  return buildDynamicCategories(categoryFolders);
+}
+
+// Discover projects using direct folder access (for external users)
 async function discoverProjectsFromDirectAccess(userEmail) {
   const userPerms = PROJECT_PERMISSIONS[userEmail];
   if (!userPerms || !userPerms.directAccess) {
@@ -127,20 +139,19 @@ async function discoverProjectsFromDirectAccess(userEmail) {
   
   for (const project of userPerms.allowedProjects) {
     try {
-      // Get folder metadata
       const metadata = await getFolderMetadata(project.folderId);
       if (!metadata) continue;
       
-      // Get child folders (categories)
+      // Get all child folders (categories)
       const childFolders = await listChildFolders(project.folderId);
-      const folders = {};
       
-      // Match folders to categories based on prefix
-      for (const [catId, regex] of Object.entries(CATEGORY_PREFIX)) {
-        const match = childFolders.find(f => regex.test(f.name));
-        if (match) {
-          folders[catId] = match.id;
-        }
+      // Build dynamic categories
+      const categories = await discoverCategoriesFromProject(project.folderId);
+      
+      // Build folders object for backward compatibility
+      const folders = {};
+      for (const cat of categories) {
+        folders[cat.id] = cat._folderId;
       }
       
       result.push({
@@ -148,7 +159,8 @@ async function discoverProjectsFromDirectAccess(userEmail) {
         name: project.name,
         modifiedTime: metadata.modifiedTime,
         baseFolderId: project.folderId,
-        folders
+        folders: folders,
+        dynamicCategories: categories // Store dynamic categories
       });
     } catch (e) {
       console.error(`Error accessing project ${project.name}:`, e);
@@ -169,14 +181,17 @@ async function discoverProjectsFromDrive() {
   const result = [];
   
   for (const proj of projects) {
-    const childFolders = await listChildFolders(proj.id);
-    const folders = {};
+    console.log(`Discovering categories for project: ${proj.name}`);
     
-    for (const [catId, regex] of Object.entries(CATEGORY_PREFIX)) {
-      const match = childFolders.find(f => regex.test(f.name));
-      if (match) {
-        folders[catId] = match.id;
-      }
+    // Build dynamic categories
+    const categories = await discoverCategoriesFromProject(proj.id);
+    
+    console.log(`Found ${categories.length} categories for ${proj.name}:`, categories.map(c => c.title));
+    
+    // Build folders object for backward compatibility
+    const folders = {};
+    for (const cat of categories) {
+      folders[cat.id] = cat._folderId;
     }
     
     result.push({
@@ -184,10 +199,12 @@ async function discoverProjectsFromDrive() {
       name: proj.name,
       modifiedTime: proj.modifiedTime,
       baseFolderId: proj.id,
-      folders
+      folders: folders,
+      dynamicCategories: categories // Store dynamic categories
     });
   }
   
+  console.log('All discovered projects:', result);
   return result;
 }
 
