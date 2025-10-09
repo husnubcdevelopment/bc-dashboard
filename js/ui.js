@@ -3,12 +3,12 @@
 let selectedProject = null;
 let refreshInterval = null;
 
-// Render projects overview grid
+// Render projects overview grid with access control
 function renderProjectsOverview(projects) {
   const root = document.getElementById('projectsOverview');
   
   if (!projects || !projects.length) {
-    root.innerHTML = '<div class="text-gray-500">Geen projecten gevonden.</div>';
+    root.innerHTML = '<div class="text-gray-500">Geen projecten gevonden of geen toegang.</div>';
     return;
   }
 
@@ -60,7 +60,7 @@ function renderProjectsOverview(projects) {
   }).join('');
 }
 
-// Populate project selector dropdown
+// Populate project selector dropdown with access control
 function populateProjectSelector() {
   const sel = document.getElementById('projectSelector');
   sel.innerHTML = '<option value="">-- Kies een project --</option>';
@@ -73,9 +73,11 @@ function populateProjectSelector() {
     sel.appendChild(opt);
   });
   
-  // Add dynamic projects from Drive
-  if (window.DYNAMIC_PROJECTS) {
-    window.DYNAMIC_PROJECTS.forEach(p => {
+  // Add dynamic projects from Drive (with access control)
+  if (window.DYNAMIC_PROJECTS && window.CURRENT_USER_EMAIL) {
+    const accessibleProjects = filterProjectsByAccess(window.DYNAMIC_PROJECTS, window.CURRENT_USER_EMAIL);
+    
+    accessibleProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = `auto:${p.id}`;
       opt.textContent = p.name;
@@ -102,8 +104,8 @@ function showProjectInfo(project) {
   `;
 }
 
-// Render categories grid
-function renderCategories(categories, project) {
+// Render categories grid (now supports dynamic categories)
+async function renderCategories(categories, project) {
   const grid = document.getElementById('categoriesGrid');
   grid.innerHTML = '';
 
@@ -113,20 +115,33 @@ function renderCategories(categories, project) {
   }
 
   const isAuth = gapi.client.getToken() !== null;
+  
+  // Use dynamic categories if available, otherwise fall back to CONFIG.categories
+  const categoriesToRender = project.dynamicCategories || categories;
 
-  categories.forEach(cat => {
+  for (const cat of categoriesToRender) {
     const card = document.createElement('div');
-    const folderId = project.folders ? project.folders[cat.id] : null;
+    const folderId = cat._folderId || (project.folders ? project.folders[cat.id] : null);
     card.className = `category-card ${cat.colorClass} border-2 rounded-xl shadow p-5`;
 
     if (folderId && isAuth) {
       card.onclick = () => showFilesModal(cat, folderId);
     }
 
+    // Get subfolders dynamically if not already populated
+    let items = cat.items || [];
+    if (folderId && items.length === 0 && isAuth) {
+      try {
+        items = await getSubfoldersForCategory(folderId);
+      } catch (e) {
+        console.error('Error loading subfolders:', e);
+      }
+    }
+
     let itemsHTML = '';
-    if (cat.items?.length) {
+    if (items.length > 0) {
       itemsHTML = '<ul class="space-y-2 mt-2">';
-      cat.items.forEach(it => {
+      items.forEach(it => {
         itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4 border-current">${it}</li>`;
       });
       itemsHTML += '</ul>';
@@ -148,10 +163,10 @@ function renderCategories(categories, project) {
     `;
 
     grid.appendChild(card);
-  });
+  }
 }
 
-// Show files modal
+// **UPDATED: Show files modal with subfolder support**
 async function showFilesModal(category, mainFolderId) {
   const modal = document.getElementById('fileModal');
   const title = document.getElementById('modalTitle');
@@ -167,50 +182,96 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// Refresh files in modal
+// **UPDATED: Refresh files with subfolder display**
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
 
   box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
-  const files = await listFiles(folderId);
+  
+  // Get folder structure with subfolders
+  const structure = await getFolderStructure(folderId);
+  const allFiles = structure.files;
+  const subfolders = structure.subfolders;
 
-  if (!files.length) {
+  const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
+
+  if (totalFiles === 0) {
     box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden gevonden</p>';
     return;
   }
 
   let html = `
     <div class="mb-3 flex justify-between items-center">
-      <p class="text-sm text-gray-600">📊 ${files.length} bestand(en)</p>
+      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en)</p>
       <button onclick="refreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
         🔄 Vernieuwen
       </button>
     </div>
-    <div class="space-y-2">
   `;
 
-  files.forEach(f => {
-    const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
-    html += `
-      <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
-           onclick="window.open('${f.webViewLink}','_blank')">
-        <div class="flex items-center gap-3 flex-1">
-          <span class="text-2xl">📄</span>
-          <div>
-            <p class="font-medium text-gray-800">
-              ${f.name}
-              ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-            </p>
-            <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+  // Display main folder files
+  if (allFiles.length > 0) {
+    html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
+    allFiles.forEach(f => {
+      const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+      html += `
+        <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
+             onclick="window.open('${f.webViewLink}','_blank')">
+          <div class="flex items-center gap-3 flex-1">
+            <span class="text-2xl">📄</span>
+            <div>
+              <p class="font-medium text-gray-800">
+                ${f.name}
+                ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+              </p>
+              <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+            </div>
           </div>
+          <span class="text-blue-500">🔗</span>
         </div>
-        <span class="text-blue-500">🔗</span>
-      </div>
-    `;
+      `;
+    });
+    html += '</div></div>';
+  }
+
+  // Display subfolders and their files
+  subfolders.forEach(subfolder => {
+    if (subfolder.files.length > 0) {
+      html += `
+        <div class="mb-4">
+          <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            📁 ${subfolder.name} 
+            <span class="text-xs bg-gray-200 px-2 py-0.5 rounded-full">${subfolder.files.length} bestand(en)</span>
+          </h4>
+          <div class="space-y-2 pl-4 border-l-2 border-gray-200">
+      `;
+      
+      subfolder.files.forEach(f => {
+        const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+        html += `
+          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
+               onclick="window.open('${f.webViewLink}','_blank')">
+            <div class="flex items-center gap-3 flex-1">
+              <span class="text-2xl">📄</span>
+              <div>
+                <p class="font-medium text-gray-800">
+                  ${f.name}
+                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+                </p>
+                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+              </div>
+            </div>
+            <span class="text-blue-500">🔗</span>
+          </div>
+        `;
+      });
+      
+      html += '</div></div>';
+    }
   });
 
-  html += '</div><p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s</p>';
+  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s</p>';
   box.innerHTML = html;
 }
 
