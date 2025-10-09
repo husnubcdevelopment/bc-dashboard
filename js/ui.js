@@ -17,11 +17,10 @@ function renderProjectsOverview(projects) {
   root.innerHTML = projects.map(p => {
     // Use dynamic categories from the project
     const categories = p.dynamicCategories || [];
-    const present = categories.length;
+    const categoryCount = categories.length;
     
-    // Progress based on expected 14 categories (adjust this number as needed)
-    const expectedTotal = 14;
-    const pct = expectedTotal > 0 ? Math.round((present / expectedTotal) * 100) : 0;
+    // Always show 100% when categories exist (we're not comparing to a target)
+    const pct = categoryCount > 0 ? 100 : 0;
 
     // Show first 4 categories as quick links
     const quick = categories.slice(0, 4).map(cat => {
@@ -45,13 +44,13 @@ function renderProjectsOverview(projects) {
             📂 Open hoofdmap
           </button>
         </div>
-        <div class="text-sm mb-2 font-medium">${present}/${expectedTotal} categorieën</div>
+        <div class="text-sm mb-2 font-medium">${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}</div>
         <div class="w-full h-2 bg-gray-200 rounded mb-3">
-          <div class="h-2 ${pct >= 100 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500'} rounded transition-all" style="width:${Math.min(pct, 100)}%"></div>
+          <div class="h-2 bg-green-500 rounded transition-all" style="width:${pct}%"></div>
         </div>
         ${categories.length > 0 
           ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
-          : `<div class="text-xs text-amber-600 mt-2">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
+          : `<div class="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
         }
       </div>
     `;
@@ -97,8 +96,9 @@ function showProjectInfo(project) {
         <p class="text-blue-100">${categoryCount} Categorie${categoryCount !== 1 ? 'ën' : ''} • Status: Actief</p>
       </div>
       <button onclick="window.open('https://drive.google.com/drive/folders/${project.baseFolderId}','_blank')"
-        class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors">
-        🗂️ Open hoofdmap
+        class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors flex items-center gap-2">
+        <span>🗂️</span>
+        <span>Open hoofdmap</span>
       </button>
     </div>
   `;
