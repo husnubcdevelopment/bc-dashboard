@@ -104,8 +104,8 @@ function showProjectInfo(project) {
   `;
 }
 
-// Render categories grid
-function renderCategories(categories, project) {
+// Render categories grid (now supports dynamic categories)
+async function renderCategories(categories, project) {  // ← Voeg 'async' toe!
   const grid = document.getElementById('categoriesGrid');
   grid.innerHTML = '';
 
@@ -115,20 +115,35 @@ function renderCategories(categories, project) {
   }
 
   const isAuth = gapi.client.getToken() !== null;
+  
+  // Use dynamic categories if available
+  const categoriesToRender = project.dynamicCategories || categories;
 
-  categories.forEach(cat => {
+  // Process each category
+  for (const cat of categoriesToRender) {  // ← Verander forEach naar for...of
     const card = document.createElement('div');
-    const folderId = project.folders ? project.folders[cat.id] : null;
+    const folderId = cat._folderId || (project.folders ? project.folders[cat.id] : null);
     card.className = `category-card ${cat.colorClass} border-2 rounded-xl shadow p-5`;
 
     if (folderId && isAuth) {
       card.onclick = () => showFilesModal(cat, folderId);
     }
 
+    // Get subfolders dynamically
+    let items = cat.items || [];
+    if (folderId && isAuth && items.length === 0) {
+      try {
+        const subfolders = await listChildFolders(folderId);  // ← Dit werkt nu!
+        items = subfolders.map(sf => sf.name);
+      } catch (e) {
+        console.error('Error loading subfolders for', cat.title, ':', e);
+      }
+    }
+
     let itemsHTML = '';
-    if (cat.items?.length) {
+    if (items.length > 0) {
       itemsHTML = '<ul class="space-y-2 mt-2">';
-      cat.items.forEach(it => {
+      items.forEach(it => {
         itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4 border-current">${it}</li>`;
       });
       itemsHTML += '</ul>';
@@ -150,7 +165,7 @@ function renderCategories(categories, project) {
     `;
 
     grid.appendChild(card);
-  });
+  }
 }
 
 // **UPDATED: Show files modal with subfolder support**
