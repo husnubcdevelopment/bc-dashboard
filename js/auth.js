@@ -1,4 +1,4 @@
-// BC Development Dashboard - Authentication Module
+// BC Development Dashboard - Authentication Module WITH AUTO-REFRESH
 
 // Global state
 window.gapiInited = false;
@@ -65,6 +65,10 @@ async function handleAuthClick() {
       return;
     }
     
+    // Show loading state
+    document.getElementById('projectsOverview').innerHTML = 
+      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
+    
     // Discover projects from Drive
     let allProjects = [];
     
@@ -91,6 +95,13 @@ async function handleAuthClick() {
     
     // Populate project selector
     await populateProjectSelector();
+    
+    // 🚀 START AUTO-REFRESH
+    AutoRefreshManager.startProjectsRefresh();
+    
+    // Show cache stats in console
+    const stats = CacheManager.getStats();
+    console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
   };
   
   // Request access token
@@ -101,7 +112,7 @@ async function handleAuthClick() {
   }
 }
 
-// **NEW: Show access denied message**
+// Show access denied message
 function showAccessDenied(message) {
   const banner = document.getElementById('authBanner');
   banner.classList.remove('hidden');
@@ -118,6 +129,14 @@ function showAccessDenied(message) {
 // Load and display user information
 async function loadUserInfo() {
   try {
+    // Try cache first
+    const cachedUser = CacheManager.get('user', 'current', CacheManager.EXPIRY.USER_INFO);
+    if (cachedUser) {
+      window.CURRENT_USER_EMAIL = cachedUser.emailAddress;
+      displayUserInfo(cachedUser);
+      return;
+    }
+
     const response = await gapi.client.request({
       path: 'https://www.googleapis.com/drive/v3/about',
       params: { fields: 'user' }
@@ -126,28 +145,58 @@ async function loadUserInfo() {
     const user = response.result.user;
     window.CURRENT_USER_EMAIL = user.emailAddress;
     
-    // Check if user has access
-    const domain = user.emailAddress.split('@')[1];
-    const hasFullAccess = ALLOWED_DOMAINS.includes(domain);
-    const hasLimitedAccess = PROJECT_PERMISSIONS[user.emailAddress];
+    // Cache user info
+    CacheManager.set('user', 'current', user);
     
-    let accessBadge = '';
-    if (hasFullAccess) {
-      accessBadge = '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Volledige toegang</span>';
-    } else if (hasLimitedAccess) {
-      const projectCount = hasLimitedAccess.allowedProjects.length;
-      accessBadge = `<span class="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Toegang tot ${projectCount} project(en)</span>`;
-    }
-    
-    document.getElementById('userInfo').innerHTML = `
-      <span class="inline-flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
-        <span class="pulse-dot"></span>
-        <span class="font-medium text-green-800">Verbonden als ${user.displayName}</span>
-        ${accessBadge}
-      </span>
-    `;
+    displayUserInfo(user);
   } catch (e) {
     console.error('Error loading user info:', e);
     window.CURRENT_USER_EMAIL = null;
   }
+}
+
+// Display user information with access badge
+function displayUserInfo(user) {
+  // Check if user has access
+  const domain = user.emailAddress.split('@')[1];
+  const hasFullAccess = ALLOWED_DOMAINS.includes(domain);
+  const hasLimitedAccess = PROJECT_PERMISSIONS[user.emailAddress];
+  
+  let accessBadge = '';
+  if (hasFullAccess) {
+    accessBadge = '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Volledige toegang</span>';
+  } else if (hasLimitedAccess) {
+    const projectCount = hasLimitedAccess.allowedProjects.length;
+    accessBadge = `<span class="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Toegang tot ${projectCount} project(en)</span>`;
+  }
+  
+  document.getElementById('userInfo').innerHTML = `
+    <span class="inline-flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
+      <span class="pulse-dot"></span>
+      <span class="font-medium text-green-800">Verbonden als ${user.displayName}</span>
+      ${accessBadge}
+    </span>
+  `;
+}
+
+// Handle sign out
+function handleSignOut() {
+  const token = gapi.client.getToken();
+  if (token !== null) {
+    google.accounts.oauth2.revoke(token.access_token);
+    gapi.client.setToken('');
+  }
+  
+  // Stop auto-refresh
+  AutoRefreshManager.stopAll();
+  
+  // Clear cache
+  CacheManager.clearAll();
+  
+  // Reset UI
+  document.getElementById('authBanner').classList.remove('hidden');
+  document.getElementById('userInfo').innerHTML = '';
+  window.CURRENT_USER_EMAIL = null;
+  
+  console.log('✓ Signed out and cache cleared');
 }

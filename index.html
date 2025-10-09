@@ -12,8 +12,8 @@
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   
-  <!-- Custom Styles -->
-  <link rel="stylesheet" href="css/styles.css?v=4">
+  <!-- Custom Styles - FIXED PATH -->
+  <link rel="stylesheet" href="css/styles.css?v=5">
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
 
@@ -28,8 +28,50 @@
         </div>
       </div>
       <div id="userInfo"></div>
+      
+      <!-- Settings Button -->
+      <button onclick="toggleSettings()" class="ml-4 text-gray-600 hover:text-gray-800" title="Instellingen">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </button>
     </div>
   </header>
+
+  <!-- Settings Panel (hidden by default) -->
+  <div id="settingsPanel" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-xl border p-4 z-40 w-80">
+    <h3 class="font-bold text-lg mb-3">⚙️ Instellingen</h3>
+    
+    <div class="space-y-3">
+      <!-- Auto-refresh toggle -->
+      <div class="flex items-center justify-between">
+        <label class="text-sm font-medium">Auto-refresh</label>
+        <button onclick="toggleAutoRefresh()" id="autoRefreshToggle" 
+                class="px-3 py-1 rounded text-sm bg-green-100 text-green-800">
+          ✓ Actief
+        </button>
+      </div>
+      
+      <!-- Cache info -->
+      <div class="border-t pt-3">
+        <div class="text-sm font-medium mb-2">Cache</div>
+        <div id="cacheStats" class="text-xs text-gray-600 mb-2">
+          Laden...
+        </div>
+        <button onclick="clearCache()" class="text-sm text-red-600 hover:text-red-800">
+          🗑️ Cache wissen
+        </button>
+      </div>
+      
+      <!-- Sign out -->
+      <div class="border-t pt-3">
+        <button onclick="handleSignOut()" class="w-full text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded">
+          🚪 Uitloggen
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Auth Banner -->
   <div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
@@ -86,12 +128,14 @@
     </div>
   </div>
 
-  <!-- Scripts - VERSIE 4 VOOR CACHE BYPASS -->
-  <script src="js/config.js?v=4"></script>
-  <script src="js/auth.js?v=4"></script>
-  <script src="js/drive-api.js?v=4"></script>
-  <script src="js/ui.js?v=4"></script>
-  <script src="js/main.js?v=4"></script>
+  <!-- Scripts - VERSIE 6 met Cache + Auto-Refresh -->
+  <script src="js/config.js?v=6"></script>
+  <script src="js/cache-manager.js?v=6"></script>
+  <script src="js/auto-refresh.js?v=6"></script>
+  <script src="js/auth.js?v=6"></script>
+  <script src="js/drive-api.js?v=6"></script>
+  <script src="js/ui.js?v=6"></script>
+  <script src="js/main.js?v=6"></script>
 
 </body>
 </html>

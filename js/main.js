@@ -26,9 +26,16 @@ document.getElementById('projectSelector').addEventListener('change', async e =>
     console.log(`Rendering ${categoriesToUse.length} categories for ${selectedProject.name}`);
     
     await renderCategories(categoriesToUse, selectedProject);
+    
+    // 🚀 START AUTO-REFRESH FOR THIS PROJECT'S CATEGORIES
+    AutoRefreshManager.startCategoriesRefresh(selectedProject);
   } else {
     document.getElementById('projectInfo').classList.add('hidden');
     await renderCategories([], null);
+    
+    // Stop category refresh when no project selected
+    AutoRefreshManager.intervals.categories && clearInterval(AutoRefreshManager.intervals.categories);
+    AutoRefreshManager.intervals.categories = null;
   }
 });
 
@@ -70,3 +77,60 @@ document.getElementById('searchInput').addEventListener('input', async e => {
   // Render empty categories grid
   renderCategories([], null);
 })();
+
+// Settings panel functions
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const isHidden = panel.classList.contains('hidden');
+  
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    updateCacheStats();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function toggleAutoRefresh() {
+  AutoRefreshManager.isEnabled = !AutoRefreshManager.isEnabled;
+  const btn = document.getElementById('autoRefreshToggle');
+  
+  if (AutoRefreshManager.isEnabled) {
+    btn.textContent = '✓ Actief';
+    btn.className = 'px-3 py-1 rounded text-sm bg-green-100 text-green-800';
+    AutoRefreshManager.startProjectsRefresh();
+    if (selectedProject) {
+      AutoRefreshManager.startCategoriesRefresh(selectedProject);
+    }
+  } else {
+    btn.textContent = '✗ Uitgeschakeld';
+    btn.className = 'px-3 py-1 rounded text-sm bg-gray-100 text-gray-800';
+    AutoRefreshManager.stopAll();
+  }
+}
+
+function updateCacheStats() {
+  const stats = CacheManager.getStats();
+  document.getElementById('cacheStats').innerHTML = `
+    ${stats.entries} items in cache<br>
+    ${stats.sizeKB} KB / ${stats.maxSizeKB} KB gebruikt
+  `;
+}
+
+function clearCache() {
+  if (confirm('Weet je zeker dat je de cache wilt wissen? Dit zal de volgende keer laden trager maken.')) {
+    CacheManager.clearAll();
+    updateCacheStats();
+    alert('✓ Cache gewist');
+  }
+}
+
+// Close settings panel when clicking outside
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('settingsPanel');
+  const settingsBtn = e.target.closest('button[onclick="toggleSettings()"]');
+  
+  if (!panel.contains(e.target) && !settingsBtn && !panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+  }
+});
