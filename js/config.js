@@ -42,8 +42,11 @@ const CATEGORY_TEMPLATES = {
   13: { icon: "✔️", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
   14: { icon: "📐", colorClass: "bg-teal-100 border-teal-400 text-teal-900 hover:bg-teal-200" },
   15: { icon: "🔧", colorClass: "bg-pink-100 border-pink-400 text-pink-900 hover:bg-pink-200" },
-  // Voeg meer nummers toe als je wilt...
-  // Voor onbekende nummers wordt een default gebruikt
+  16: { icon: "🎯", colorClass: "bg-cyan-100 border-cyan-400 text-cyan-900 hover:bg-cyan-200" },
+  17: { icon: "🔍", colorClass: "bg-lime-100 border-lime-400 text-lime-900 hover:bg-lime-200" },
+  18: { icon: "📱", colorClass: "bg-fuchsia-100 border-fuchsia-400 text-fuchsia-900 hover:bg-fuchsia-200" },
+  19: { icon: "🌟", colorClass: "bg-amber-100 border-amber-400 text-amber-900 hover:bg-amber-200" },
+  20: { icon: "🎨", colorClass: "bg-rose-100 border-rose-400 text-rose-900 hover:bg-rose-200" }
 };
 
 // Default voor nieuwe/onbekende categorieën
@@ -60,7 +63,7 @@ const CONFIG = {
 
 // Helper: Parse category number from folder name
 function parseCategoryNumber(folderName) {
-  // Matches: "1_", "01_", "1.", "01.", "1-", "01-", "1 "
+  // Matches: "1_", "01_", "1.", "01.", "1-", "01-", "1 ", "14_", etc.
   const match = folderName.match(/^(\d{1,2})[\s._-]/);
   return match ? parseInt(match[1]) : null;
 }
@@ -102,7 +105,6 @@ function buildDynamicCategories(folders) {
     const id = createCategoryId(folder.name);
     const style = getCategoryStyle(categoryNum);
     
-    // Extract subfolder names (will be populated later when project is selected)
     categories.push({
       id: id,
       title: folder.name,
