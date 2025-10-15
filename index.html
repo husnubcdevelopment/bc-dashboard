@@ -45,7 +45,7 @@
       window.tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: window.CLIENT_ID,
         scope: window.SCOPES,
-        callback: '', // Will be set in handleAuthClick
+        callback: '',
       });
       window.gisInited = true;
       console.log('✅ GIS client initialized');
@@ -62,34 +62,46 @@
     
     if (window.gapiInited && window.gisInited) {
       console.log('✅ Both APIs ready! Enabling login button...');
-      
-      // WAIT FOR DOM if needed
-      if (document.readyState === 'loading') {
-        console.log('⏳ DOM not ready yet, waiting...');
-        document.addEventListener('DOMContentLoaded', enableLoginButton);
-      } else {
-        enableLoginButton();
-      }
+      enableLoginButton();
     }
   }
   
-  // Enable the login button
+  // Enable the login button - WITH GUARANTEED DOM READY
   function enableLoginButton() {
-    console.log('🎯 Enabling login button...');
-    const banner = document.getElementById('authBanner');
-    if (banner) {
-      banner.classList.remove('hidden');
-      const btn = banner.querySelector('button');
-      if (btn) {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
-        console.log('✅ Button enabled!');
+    console.log('🎯 Attempting to enable login button...');
+    
+    // Function to actually enable the button
+    function doEnable() {
+      const banner = document.getElementById('authBanner');
+      if (banner) {
+        console.log('✅ Found authBanner, enabling...');
+        banner.classList.remove('hidden');
+        const btn = banner.querySelector('button');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+          console.log('✅ Button enabled!');
+        }
+        const helpText = banner.querySelector('p');
+        if (helpText) helpText.remove();
+      } else {
+        console.error('❌ authBanner element still not found!');
       }
-      const helpText = banner.querySelector('p');
-      if (helpText) helpText.remove();
+    }
+    
+    // Wait for DOM if needed
+    if (document.getElementById('authBanner')) {
+      // Element exists, enable now
+      doEnable();
+    } else if (document.readyState === 'loading') {
+      // DOM still loading, wait for it
+      console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
+      document.addEventListener('DOMContentLoaded', doEnable);
     } else {
-      console.error('❌ authBanner element not found!');
+      // DOM is ready but element not found, try again after a tiny delay
+      console.log('⏳ DOM ready but element not found, retrying in 100ms...');
+      setTimeout(doEnable, 100);
     }
   }
   
@@ -121,7 +133,8 @@
         }
       } else {
         console.log('✅ All systems ready!');
-        checkBothAPIsReady(); // Try one more time
+        // Make sure button is enabled
+        enableLoginButton();
       }
     }, 3000);
   });
