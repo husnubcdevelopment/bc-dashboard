@@ -106,12 +106,16 @@
     </div>
   </div>
 
-  <!-- Auth Banner -->
-  <div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
-    <button onclick="handleAuthClick()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
-      🔐 Log in met Google
-    </button>
-  </div>
+ <!-- Auth Banner -->
+<div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
+  <button onclick="handleAuthClick()" 
+          disabled 
+          style="opacity: 0.5; cursor: not-allowed;"
+          class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
+    🔐 Log in met Google
+  </button>
+  <p class="text-xs text-gray-600 mt-2">Wacht tot APIs geladen zijn...</p>
+</div>
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 py-8">

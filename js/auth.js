@@ -33,6 +33,89 @@ async function initializeGapiClient() {
   }
 }
 
+// Enable auth button when both APIs are ready
+function maybeEnableButtons() {
+  console.log(`Auth status: GAPI=${window.gapiInited}, GIS=${window.gisInited}`);
+  
+  if (window.gapiInited && window.gisInited) {
+    console.log('✓ Both APIs ready, enabling login button');
+    const authBanner = document.getElementById('authBanner');
+    if (authBanner) {
+      authBanner.classList.remove('hidden');
+      // Make sure button is enabled
+      const loginBtn = authBanner.querySelector('button');
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.style.opacity = '1';
+        loginBtn.style.cursor = 'pointer';
+      }
+    }
+  }
+}
+
+// Handle authentication click
+async function handleAuthClick() {
+  // SAFETY CHECK: Ensure tokenClient exists
+  if (!window.tokenClient) {
+    console.error('❌ Token client not initialized yet');
+    alert('Authenticatie is nog niet klaar. Probeer het over een paar seconden opnieuw.');
+    return;
+  }
+  
+  if (!window.gapiInited || !window.gisInited) {
+    console.error('❌ APIs not fully initialized');
+    alert('Google APIs zijn nog aan het laden. Probeer het over een paar seconden opnieuw.');
+    return;
+  }
+  
+  window.tokenClient.callback = async (resp) => {
+    if (resp.error) {
+      console.error('Auth error:', resp);
+      return;
+    }
+    
+    // Hide auth banner
+    document.getElementById('authBanner').classList.add('hidden');
+    
+    // Show loading state
+    document.getElementById('projectsOverview').innerHTML = 
+      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
+    
+    // Discover projects dynamically (auto-detects access level)
+    const allProjects = await discoverProjects();
+    
+    if (allProjects.length === 0) {
+      showNoAccess();
+      return;
+    }
+    
+    // Display user info
+    await displayUserInfo(allProjects.length);
+    
+    // Store and render projects
+    window.DYNAMIC_PROJECTS = allProjects;
+    renderProjectsOverview(allProjects);
+    
+    // Populate project selector
+    await populateProjectSelector();
+    
+    // Start auto-refresh
+    AutoRefreshManager.startProjectsRefresh();
+    
+    // Show cache stats
+    const stats = CacheManager.getStats();
+    console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
+  };
+  
+  // Request access token
+  if (gapi.client.getToken() === null) {
+    window.tokenClient.requestAccessToken({ prompt: 'consent' });
+  } else {
+    window.tokenClient.requestAccessToken({ prompt: '' });
+  }
+}
+
+
 // Global state
 window.gapiInited = false;
 window.gisInited = false;
