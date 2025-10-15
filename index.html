@@ -18,37 +18,83 @@
   window.tokenClient = null;
   window.CURRENT_USER_EMAIL = null;
   window.DYNAMIC_PROJECTS = [];
+  window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+  window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
   
-  // Placeholder functions
+  // GAPI initialization
   window.gapiLoaded = function() {
-    console.log('⏳ GAPI loaded, waiting for initialization...');
+    console.log('✅ GAPI script loaded, initializing client...');
+    gapi.load('client', async function() {
+      try {
+        await gapi.client.init({
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+        });
+        window.gapiInited = true;
+        console.log('✅ GAPI client initialized');
+        checkBothAPIsReady();
+      } catch (e) {
+        console.error('❌ GAPI init error:', e);
+      }
+    });
   };
   
+  // GIS initialization
   window.gisLoaded = function() {
-    console.log('⏳ GIS loaded, waiting for initialization...');
+    console.log('✅ GIS script loaded, initializing token client...');
+    try {
+      window.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: window.CLIENT_ID,
+        scope: window.SCOPES,
+        callback: '', // Will be set in handleAuthClick
+      });
+      window.gisInited = true;
+      console.log('✅ GIS client initialized');
+      checkBothAPIsReady();
+    } catch (e) {
+      console.error('❌ GIS init error:', e);
+    }
   };
+  
+  // Check if both APIs are ready and enable button
+  function checkBothAPIsReady() {
+    console.log('🔍 Checking API status - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
+    
+    if (window.gapiInited && window.gisInited) {
+      console.log('✅ Both APIs ready! Enabling login button...');
+      const banner = document.getElementById('authBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        const btn = banner.querySelector('button');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+          const helpText = banner.querySelector('p');
+          if (helpText) helpText.remove();
+        }
+      }
+    }
+  }
   
   // Fallback check after page load
   window.addEventListener('load', function() {
     console.log('📄 Page loaded, checking API status...');
-    console.log('GAPI initialized:', window.gapiInited);
-    console.log('GIS initialized:', window.gisInited);
     
     setTimeout(function() {
       console.log('⏰ 3 second check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
       
       if (!window.gapiInited || !window.gisInited) {
-        console.warn('⚠️ APIs not initialized after page load');
+        console.error('⚠️ APIs not initialized after 3 seconds - showing error');
         const banner = document.getElementById('authBanner');
         if (banner) {
           banner.classList.remove('hidden');
-          const btn = banner.querySelector('button');
-          if (btn) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-            btn.innerHTML = '🔐 Log in met Google (Geforceerd - APIs niet geladen)';
-          }
+          banner.className = 'bg-amber-50 border-b border-amber-300 p-4 text-center';
+          banner.innerHTML = `
+            <div class="text-amber-800 mb-2">⚠️ Google APIs konden niet laden</div>
+            <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              🔄 Pagina herladen
+            </button>
+          `;
         }
       }
     }, 3000);
