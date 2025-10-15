@@ -7,6 +7,27 @@
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- NIEUW: Define global functions BEFORE Google APIs load -->
+  <script>
+    // Initialize global state
+    window.gapiInited = false;
+    window.gisInited = false;
+    window.tokenClient = null;
+    window.CURRENT_USER_EMAIL = null;
+    window.DYNAMIC_PROJECTS = [];
+    
+    // Placeholder functions that will be called by Google APIs
+    window.gapiLoaded = function() {
+      console.log('⏳ GAPI loaded, waiting for initialization...');
+      // Will be properly initialized by auth.js
+    };
+    
+    window.gisLoaded = function() {
+      console.log('⏳ GIS loaded, waiting for initialization...');
+      // Will be properly initialized by auth.js
+    };
+  </script>
   
   <!-- Google API -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
