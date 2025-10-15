@@ -9,37 +9,53 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- NIEUW: Define global functions BEFORE Google APIs load -->
-  <script>
-    // Initialize global state
-    window.gapiInited = false;
-    window.gisInited = false;
-    window.tokenClient = null;
-    window.CURRENT_USER_EMAIL = null;
-    window.DYNAMIC_PROJECTS = [];
-    
-    // Placeholder functions that will be called by Google APIs
-    window.gapiLoaded = function() {
-      console.log('⏳ GAPI loaded, waiting for initialization...');
-      // Will be properly initialized by auth.js
-    };
-    
-    window.gisLoaded = function() {
-      console.log('⏳ GIS loaded, waiting for initialization...');
-      // Will be properly initialized by auth.js
-    };
-     // NIEUW: Fallback check after page load
+ <script>
+  console.log('🚀 Inline script executing...');
+  
+  // Initialize global state
+  window.gapiInited = false;
+  window.gisInited = false;
+  window.tokenClient = null;
+  window.CURRENT_USER_EMAIL = null;
+  window.DYNAMIC_PROJECTS = [];
+  
+  // Placeholder functions
+  window.gapiLoaded = function() {
+    console.log('⏳ GAPI loaded, waiting for initialization...');
+  };
+  
+  window.gisLoaded = function() {
+    console.log('⏳ GIS loaded, waiting for initialization...');
+  };
+  
+  // Fallback check after page load
   window.addEventListener('load', function() {
+    console.log('📄 Page loaded, checking API status...');
+    console.log('GAPI initialized:', window.gapiInited);
+    console.log('GIS initialized:', window.gisInited);
+    
     setTimeout(function() {
+      console.log('⏰ 3 second check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
+      
       if (!window.gapiInited || !window.gisInited) {
-        console.warn('⚠️ APIs not initialized after page load, showing manual recovery');
+        console.warn('⚠️ APIs not initialized after page load');
         const banner = document.getElementById('authBanner');
         if (banner) {
           banner.classList.remove('hidden');
+          const btn = banner.querySelector('button');
+          if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.innerHTML = '🔐 Log in met Google (Geforceerd - APIs niet geladen)';
+          }
         }
       }
-    }, 3000); // Check 3 seconds after page load
+    }, 3000);
   });
-  </script>
+  
+  console.log('✓ Inline script complete');
+</script>
   
   <!-- Google API -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
