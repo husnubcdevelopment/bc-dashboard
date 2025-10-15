@@ -9,7 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- NIEUW: Define global functions BEFORE Google APIs load -->
- <script>
+<script>
   console.log('🚀 Inline script executing...');
   
   // Initialize global state
@@ -49,6 +49,7 @@
       });
       window.gisInited = true;
       console.log('✅ GIS client initialized');
+      console.log('✅ TokenClient created:', window.tokenClient !== null);
       checkBothAPIsReady();
     } catch (e) {
       console.error('❌ GIS init error:', e);
@@ -61,18 +62,34 @@
     
     if (window.gapiInited && window.gisInited) {
       console.log('✅ Both APIs ready! Enabling login button...');
-      const banner = document.getElementById('authBanner');
-      if (banner) {
-        banner.classList.remove('hidden');
-        const btn = banner.querySelector('button');
-        if (btn) {
-          btn.disabled = false;
-          btn.style.opacity = '1';
-          btn.style.cursor = 'pointer';
-          const helpText = banner.querySelector('p');
-          if (helpText) helpText.remove();
-        }
+      
+      // WAIT FOR DOM if needed
+      if (document.readyState === 'loading') {
+        console.log('⏳ DOM not ready yet, waiting...');
+        document.addEventListener('DOMContentLoaded', enableLoginButton);
+      } else {
+        enableLoginButton();
       }
+    }
+  }
+  
+  // Enable the login button
+  function enableLoginButton() {
+    console.log('🎯 Enabling login button...');
+    const banner = document.getElementById('authBanner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      const btn = banner.querySelector('button');
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        console.log('✅ Button enabled!');
+      }
+      const helpText = banner.querySelector('p');
+      if (helpText) helpText.remove();
+    } else {
+      console.error('❌ authBanner element not found!');
     }
   }
   
@@ -82,20 +99,29 @@
     
     setTimeout(function() {
       console.log('⏰ 3 second check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
+      console.log('TokenClient exists:', window.tokenClient !== null);
       
-      if (!window.gapiInited || !window.gisInited) {
+      if (!window.gapiInited || !window.gisInited || !window.tokenClient) {
         console.error('⚠️ APIs not initialized after 3 seconds - showing error');
         const banner = document.getElementById('authBanner');
         if (banner) {
           banner.classList.remove('hidden');
           banner.className = 'bg-amber-50 border-b border-amber-300 p-4 text-center';
           banner.innerHTML = `
-            <div class="text-amber-800 mb-2">⚠️ Google APIs konden niet laden</div>
+            <div class="text-amber-800 mb-2 font-bold">⚠️ Google APIs konden niet laden</div>
+            <div class="text-sm text-amber-700 mb-3">
+              GAPI: ${window.gapiInited ? '✅' : '❌'} | 
+              GIS: ${window.gisInited ? '✅' : '❌'} | 
+              TokenClient: ${window.tokenClient ? '✅' : '❌'}
+            </div>
             <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
               🔄 Pagina herladen
             </button>
           `;
         }
+      } else {
+        console.log('✅ All systems ready!');
+        checkBothAPIsReady(); // Try one more time
       }
     }, 3000);
   });
@@ -167,17 +193,6 @@
       </div>
     </div>
   </div>
-
- <!-- Auth Banner -->
-<div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
-  <button onclick="handleAuthClick()" 
-          disabled 
-          style="opacity: 0.5; cursor: not-allowed;"
-          class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
-    🔐 Log in met Google
-  </button>
-  <p class="text-xs text-gray-600 mt-2">Wacht tot APIs geladen zijn...</p>
-</div>
 
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 py-8">
