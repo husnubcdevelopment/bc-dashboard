@@ -1,52 +1,20 @@
-// BC Development Dashboard - Authentication Module (DYNAMIC ACCESS)
-
-// Global state
-window.gapiInited = false;
-window.gisInited = false;
-window.tokenClient = null;
-window.CURRENT_USER_EMAIL = null;
-
-// Initialize Google API Client
-window.gapiLoaded = function() {
-  gapi.load('client', initializeGapiClient);
-};
-
-async function initializeGapiClient() {
-  try {
-    await gapi.client.init({
-      discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-    });
-    window.gapiInited = true;
-    maybeEnableButtons();
-  } catch (e) {
-    console.error('GAPI init error:', e);
-  }
-}
-
-// Initialize Google Identity Services
-window.gisLoaded = function() {
-  try {
-    window.tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: window.CLIENT_ID,
-      scope: window.SCOPES,
-      callback: '',
-    });
-    window.gisInited = true;
-    maybeEnableButtons();
-  } catch (e) {
-    console.error('GIS init error:', e);
-  }
-};
-
-// Enable auth button when both APIs are ready
-function maybeEnableButtons() {
-  if (window.gapiInited && window.gisInited) {
-    document.getElementById('authBanner').classList.remove('hidden');
-  }
-}
+// BC Development Dashboard - Authentication Module
 
 // Handle authentication click
 async function handleAuthClick() {
+  // SAFETY CHECK: Ensure tokenClient exists
+  if (!window.tokenClient) {
+    console.error('❌ Token client not initialized yet');
+    alert('Authenticatie is nog niet klaar. Probeer het over een paar seconden opnieuw.');
+    return;
+  }
+  
+  if (!window.gapiInited || !window.gisInited) {
+    console.error('❌ APIs not fully initialized');
+    alert('Google APIs zijn nog aan het laden. Probeer het over een paar seconden opnieuw.');
+    return;
+  }
+  
   window.tokenClient.callback = async (resp) => {
     if (resp.error) {
       console.error('Auth error:', resp);
@@ -58,9 +26,9 @@ async function handleAuthClick() {
     
     // Show loading state
     document.getElementById('projectsOverview').innerHTML = 
-      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
+      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
     
-    // Discover projects dynamically (auto-detects access level)
+    // Discover projects (FAST - no categories yet)
     const allProjects = await discoverProjects();
     
     if (allProjects.length === 0) {
@@ -71,7 +39,7 @@ async function handleAuthClick() {
     // Display user info
     await displayUserInfo(allProjects.length);
     
-    // Store and render projects
+    // Store and render projects (will show with loading states)
     window.DYNAMIC_PROJECTS = allProjects;
     renderProjectsOverview(allProjects);
     

@@ -8,12 +8,84 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Google API -->
+  <!-- INITIALIZATION - MOET VOOR GOOGLE API SCRIPTS -->
+ <script>
+  // Global state
+  window.gapiInited = false;
+  window.gisInited = false;
+  window.tokenClient = null;
+  window.CURRENT_USER_EMAIL = null;
+  window.DYNAMIC_PROJECTS = [];
+  window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+  window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+  
+  let apisReady = false;
+  
+  // GAPI loader
+  window.gapiLoaded = function() {
+    gapi.load('client', function() {
+      gapi.client.init({
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+      }).then(function() {
+        window.gapiInited = true;
+        checkReady();
+      });
+    });
+  };
+  
+  // GIS loader
+  window.gisLoaded = function() {
+    window.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: window.CLIENT_ID,
+      scope: window.SCOPES,
+      callback: '',
+    });
+    window.gisInited = true;
+    checkReady();
+  };
+  
+  // Check if both ready
+  function checkReady() {
+    if (window.gapiInited && window.gisInited) {
+      apisReady = true;
+      tryShowButton();
+    }
+  }
+  
+  // Try to show button (will retry until DOM ready)
+  function tryShowButton() {
+    const banner = document.getElementById('authBanner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      const help = banner.querySelector('p');
+      if (help) help.remove();
+    } else {
+      // Retry after 50ms if element not found
+      setTimeout(tryShowButton, 50);
+    }
+  }
+  
+  // When DOM is ready, show button if APIs already loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    if (apisReady) {
+      tryShowButton();
+    }
+  });
+  
+  // Final fallback - force show after 3 seconds
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      tryShowButton();
+    }, 3000);
+  });
+</script>
+  
+  <!-- Google APIs -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   
-  <!-- Custom Styles - FIXED PATH -->
-  <link rel="stylesheet" href="css/styles.css?v=5">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
 
@@ -39,12 +111,11 @@
     </div>
   </header>
 
-  <!-- Settings Panel (hidden by default) -->
+  <!-- Settings Panel -->
   <div id="settingsPanel" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-xl border p-4 z-40 w-80">
     <h3 class="font-bold text-lg mb-3">⚙️ Instellingen</h3>
     
     <div class="space-y-3">
-      <!-- Auto-refresh toggle -->
       <div class="flex items-center justify-between">
         <label class="text-sm font-medium">Auto-refresh</label>
         <button onclick="toggleAutoRefresh()" id="autoRefreshToggle" 
@@ -53,18 +124,14 @@
         </button>
       </div>
       
-      <!-- Cache info -->
       <div class="border-t pt-3">
         <div class="text-sm font-medium mb-2">Cache</div>
-        <div id="cacheStats" class="text-xs text-gray-600 mb-2">
-          Laden...
-        </div>
+        <div id="cacheStats" class="text-xs text-gray-600 mb-2">Laden...</div>
         <button onclick="clearCache()" class="text-sm text-red-600 hover:text-red-800">
           🗑️ Cache wissen
         </button>
       </div>
       
-      <!-- Sign out -->
       <div class="border-t pt-3">
         <button onclick="handleSignOut()" class="w-full text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded">
           🚪 Uitloggen
@@ -78,6 +145,7 @@
     <button onclick="handleAuthClick()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
       🔐 Log in met Google
     </button>
+    <p class="text-xs text-gray-600 mt-2">Wacht tot APIs geladen zijn...</p>
   </div>
 
   <!-- Main Content -->
@@ -85,11 +153,9 @@
     
     <!-- Projects Overview -->
     <section class="mb-8">
-      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-        📁 Projecten
-      </h2>
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">📁 Projecten</h2>
       <div id="projectsOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Projects will be loaded here -->
+        <div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>
       </div>
     </section>
 
@@ -107,12 +173,12 @@
              class="w-full p-3 border rounded-lg shadow-sm">
     </div>
 
-    <!-- Project Info Banner (hidden by default) -->
+    <!-- Project Info Banner -->
     <div id="projectInfo" class="hidden"></div>
 
     <!-- Categories Grid -->
     <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- Categories will be loaded here -->
+      <div class="col-span-full text-center py-10 text-gray-400">👆 Selecteer een project</div>
     </div>
 
   </main>
@@ -128,15 +194,15 @@
     </div>
   </div>
 
-  <!-- Scripts - VERSIE 7 met Error Recovery (CORRECTE VOLGORDE!) -->
-  <script src="js/config.js?v=7"></script>
-  <script src="js/cache-manager.js?v=7"></script>
-  <script src="js/auto-refresh.js?v=7"></script>
-  <script src="js/error-recovery.js?v=7"></script>
-  <script src="js/auth.js?v=7"></script>
-  <script src="js/drive-api.js?v=7"></script>
-  <script src="js/ui.js?v=7"></script>
-  <script src="js/main.js?v=7"></script>
+  <!-- Scripts - v13 -->
+  <script src="js/config.js?v=13"></script>
+  <script src="js/cache-manager.js?v=13"></script>
+  <script src="js/auto-refresh.js?v=13"></script>
+  <script src="js/error-recovery.js?v=13"></script>
+  <script src="js/auth.js?v=13"></script>
+  <script src="js/drive-api.js?v=13"></script>
+  <script src="js/ui.js?v=13"></script>
+  <script src="js/main.js?v=13"></script>
 
 </body>
 </html>
