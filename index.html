@@ -10,9 +10,7 @@
 
     <!-- NIEUW: Define global functions BEFORE Google APIs load -->
 <script>
-  console.log('🚀 Inline script executing...');
-  
-  // Initialize global state
+  // Global state
   window.gapiInited = false;
   window.gisInited = false;
   window.tokenClient = null;
@@ -21,26 +19,25 @@
   window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
   window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
   
-  // GAPI initialization
+  // GAPI loader
   window.gapiLoaded = function() {
-    console.log('✅ GAPI script loaded, initializing client...');
-    gapi.load('client', async function() {
-      try {
-        await gapi.client.init({
-          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-        });
+    console.log('GAPI script loaded, initializing client...');
+    gapi.load('client', function() {
+      gapi.client.init({
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+      }).then(function() {
         window.gapiInited = true;
         console.log('✅ GAPI client initialized');
-        checkBothAPIsReady();
-      } catch (e) {
-        console.error('❌ GAPI init error:', e);
-      }
+        checkAndEnableButton();
+      }).catch(function(e) {
+        console.error('GAPI init failed:', e);
+      });
     });
   };
   
-  // GIS initialization
+  // GIS loader
   window.gisLoaded = function() {
-    console.log('✅ GIS script loaded, initializing token client...');
+    console.log('GIS script loaded, initializing token client...');
     try {
       window.tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: window.CLIENT_ID,
@@ -50,93 +47,55 @@
       window.gisInited = true;
       console.log('✅ GIS client initialized');
       console.log('✅ TokenClient created:', window.tokenClient !== null);
-      checkBothAPIsReady();
+      checkAndEnableButton();
     } catch (e) {
-      console.error('❌ GIS init error:', e);
+      console.error('GIS init failed:', e);
     }
   };
   
-  // Check if both APIs are ready and enable button
-  function checkBothAPIsReady() {
-    console.log('🔍 Checking API status - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
+  // Check and enable button
+  function checkAndEnableButton() {
+    console.log('🔍 Checking - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
     
     if (window.gapiInited && window.gisInited) {
-      console.log('✅ Both APIs ready! Enabling login button...');
-      enableLoginButton();
-    }
-  }
-  
-  // Enable the login button - WITH GUARANTEED DOM READY
-  function enableLoginButton() {
-    console.log('🎯 Attempting to enable login button...');
-    
-    // Function to actually enable the button
-    function doEnable() {
-      const banner = document.getElementById('authBanner');
-      if (banner) {
-        console.log('✅ Found authBanner, enabling...');
-        banner.classList.remove('hidden');
-        const btn = banner.querySelector('button');
-        if (btn) {
-          btn.disabled = false;
-          btn.style.opacity = '1';
-          btn.style.cursor = 'pointer';
-          console.log('✅ Button enabled!');
+      console.log('✅ Both ready! Enabling button...');
+      
+      // Wait for DOM
+      function enable() {
+        const banner = document.getElementById('authBanner');
+        if (banner) {
+          console.log('✅ Showing banner');
+          banner.classList.remove('hidden');
+          const helpText = banner.querySelector('p');
+          if (helpText) helpText.remove();
+        } else {
+          console.log('⏳ Banner not found, retrying...');
+          setTimeout(enable, 50);
         }
-        const helpText = banner.querySelector('p');
-        if (helpText) helpText.remove();
+      }
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', enable);
       } else {
-        console.error('❌ authBanner element still not found!');
+        enable();
       }
     }
-    
-    // Wait for DOM if needed
-    if (document.getElementById('authBanner')) {
-      // Element exists, enable now
-      doEnable();
-    } else if (document.readyState === 'loading') {
-      // DOM still loading, wait for it
-      console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
-      document.addEventListener('DOMContentLoaded', doEnable);
-    } else {
-      // DOM is ready but element not found, try again after a tiny delay
-      console.log('⏳ DOM ready but element not found, retrying in 100ms...');
-      setTimeout(doEnable, 100);
-    }
   }
   
-  // Fallback check after page load
+  // Fallback
   window.addEventListener('load', function() {
-    console.log('📄 Page loaded, checking API status...');
-    
     setTimeout(function() {
-      console.log('⏰ 3 second check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
-      console.log('TokenClient exists:', window.tokenClient !== null);
+      console.log('⏰ Fallback check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
       
-      if (!window.gapiInited || !window.gisInited || !window.tokenClient) {
-        console.error('⚠️ APIs not initialized after 3 seconds - showing error');
+      if (!window.gapiInited || !window.gisInited) {
         const banner = document.getElementById('authBanner');
         if (banner) {
           banner.classList.remove('hidden');
           banner.className = 'bg-amber-50 border-b border-amber-300 p-4 text-center';
-          banner.innerHTML = `
-            <div class="text-amber-800 mb-2 font-bold">⚠️ Google APIs konden niet laden</div>
-            <div class="text-sm text-amber-700 mb-3">
-              GAPI: ${window.gapiInited ? '✅' : '❌'} | 
-              GIS: ${window.gisInited ? '✅' : '❌'} | 
-              TokenClient: ${window.tokenClient ? '✅' : '❌'}
-            </div>
-            <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              🔄 Pagina herladen
-            </button>
-          `;
+          banner.innerHTML = '<div class="text-amber-800 font-bold">⚠️ APIs laden mislukt</div><button onclick="location.reload()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">🔄 Herladen</button>';
         }
-      } else {
-        console.log('✅ All systems ready!');
-        // Make sure button is enabled
-        enableLoginButton();
       }
-    }, 3000);
+    }, 5000);
   });
   
   console.log('✓ Inline script complete');
@@ -147,7 +106,7 @@
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   
   <!-- Custom Styles - FIXED PATH -->
-  <link rel="stylesheet" href="css/styles.css?v=11">
+  <link rel="stylesheet" href="css/styles.css?v=12">
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
 
@@ -255,15 +214,15 @@
     </div>
   </div>
 
-  <!-- Scripts - VERSIE 11 met Error Recovery (CORRECTE VOLGORDE!) -->
-  <script src="js/config.js?v=11"></script>
-  <script src="js/cache-manager.js?v=11"></script>
-  <script src="js/auto-refresh.js?v=11"></script>
-  <script src="js/error-recovery.js?v=11"></script>
-  <script src="js/auth.js?v=11"></script>
-  <script src="js/drive-api.js?v=11"></script>
-  <script src="js/ui.js?v=11"></script>
-  <script src="js/main.js?v=11"></script>
+  <!-- Scripts - VERSIE 12 met Error Recovery (CORRECTE VOLGORDE!) -->
+  <script src="js/config.js?v=12"></script>
+  <script src="js/cache-manager.js?v=12"></script>
+  <script src="js/auto-refresh.js?v=12"></script>
+  <script src="js/error-recovery.js?v=12"></script>
+  <script src="js/auth.js?v=12"></script>
+  <script src="js/drive-api.js?v=12"></script>
+  <script src="js/ui.js?v=12"></script>
+  <script src="js/main.js?v=12"></script>
 
 </body>
 </html>
