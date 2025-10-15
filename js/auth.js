@@ -1,4 +1,4 @@
-// BC Development Dashboard - Authentication Module (DYNAMIC ACCESS)
+// BC Development Dashboard - Authentication Module
 
 // Handle authentication click
 async function handleAuthClick() {
@@ -26,9 +26,9 @@ async function handleAuthClick() {
     
     // Show loading state
     document.getElementById('projectsOverview').innerHTML = 
-      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
+      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
     
-    // Discover projects dynamically (auto-detects access level)
+    // Discover projects (FAST - no categories yet)
     const allProjects = await discoverProjects();
     
     if (allProjects.length === 0) {
@@ -39,7 +39,7 @@ async function handleAuthClick() {
     // Display user info
     await displayUserInfo(allProjects.length);
     
-    // Store and render projects
+    // Store and render projects (will show with loading states)
     window.DYNAMIC_PROJECTS = allProjects;
     renderProjectsOverview(allProjects);
     
@@ -53,103 +53,6 @@ async function handleAuthClick() {
     const stats = CacheManager.getStats();
     console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
   };
-  
-  // Request access token
-  if (gapi.client.getToken() === null) {
-    window.tokenClient.requestAccessToken({ prompt: 'consent' });
-  } else {
-    window.tokenClient.requestAccessToken({ prompt: '' });
-  }
-}
-
-
-// Global state
-window.gapiInited = false;
-window.gisInited = false;
-window.tokenClient = null;
-window.CURRENT_USER_EMAIL = null;
-
-// Initialize Google API Client
-window.gapiLoaded = function() {
-  gapi.load('client', initializeGapiClient);
-};
-
-async function initializeGapiClient() {
-  try {
-    await gapi.client.init({
-      discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-    });
-    window.gapiInited = true;
-    maybeEnableButtons();
-  } catch (e) {
-    console.error('GAPI init error:', e);
-  }
-}
-
-// Initialize Google Identity Services
-window.gisLoaded = function() {
-  try {
-    window.tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: window.CLIENT_ID,
-      scope: window.SCOPES,
-      callback: '',
-    });
-    window.gisInited = true;
-    maybeEnableButtons();
-  } catch (e) {
-    console.error('GIS init error:', e);
-  }
-};
-
-// Enable auth button when both APIs are ready
-function maybeEnableButtons() {
-  if (window.gapiInited && window.gisInited) {
-    document.getElementById('authBanner').classList.remove('hidden');
-  }
-}
-
-// Handle authentication click
-async function handleAuthClick() {
-  window.tokenClient.callback = async (resp) => {
-  if (resp.error) {
-    console.error('Auth error:', resp);
-    return;
-  }
-  
-  // Hide auth banner
-  document.getElementById('authBanner').classList.add('hidden');
-  
-  // Show loading state (but just for initial fetch, not categories)
-  document.getElementById('projectsOverview').innerHTML = 
-    '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
-  
-  // 🚀 Discover projects (FAST - no categories yet)
-  const allProjects = await discoverProjects();
-  
-  if (allProjects.length === 0) {
-    showNoAccess();
-    return;
-  }
-  
-  // Display user info
-  await displayUserInfo(allProjects.length);
-  
-  // Store and render projects (will show with loading states)
-  window.DYNAMIC_PROJECTS = allProjects;
-  renderProjectsOverview(allProjects);
-  
-  // Populate project selector
-  await populateProjectSelector();
-  
-  // Categories are now loading in background (progressive rendering)
-  
-  // Start auto-refresh
-  AutoRefreshManager.startProjectsRefresh();
-  
-  // Show cache stats
-  const stats = CacheManager.getStats();
-  console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
-};
   
   // Request access token
   if (gapi.client.getToken() === null) {

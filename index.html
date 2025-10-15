@@ -7,106 +7,80 @@
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- NIEUW: Define global functions BEFORE Google APIs load -->
-<script>
-  // Global state
-  window.gapiInited = false;
-  window.gisInited = false;
-  window.tokenClient = null;
-  window.CURRENT_USER_EMAIL = null;
-  window.DYNAMIC_PROJECTS = [];
-  window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
-  window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
   
-  // GAPI loader
-  window.gapiLoaded = function() {
-    console.log('GAPI script loaded, initializing client...');
-    gapi.load('client', function() {
-      gapi.client.init({
-        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-      }).then(function() {
-        window.gapiInited = true;
-        console.log('✅ GAPI client initialized');
-        checkAndEnableButton();
-      }).catch(function(e) {
-        console.error('GAPI init failed:', e);
+  <!-- INITIALIZATION - MOET VOOR GOOGLE API SCRIPTS -->
+  <script>
+    // Global state
+    window.gapiInited = false;
+    window.gisInited = false;
+    window.tokenClient = null;
+    window.CURRENT_USER_EMAIL = null;
+    window.DYNAMIC_PROJECTS = [];
+    window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+    window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+    
+    // GAPI loader
+    window.gapiLoaded = function() {
+      gapi.load('client', function() {
+        gapi.client.init({
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+        }).then(function() {
+          window.gapiInited = true;
+          checkReady();
+        });
       });
-    });
-  };
-  
-  // GIS loader
-  window.gisLoaded = function() {
-    console.log('GIS script loaded, initializing token client...');
-    try {
+    };
+    
+    // GIS loader
+    window.gisLoaded = function() {
       window.tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: window.CLIENT_ID,
         scope: window.SCOPES,
         callback: '',
       });
       window.gisInited = true;
-      console.log('✅ GIS client initialized');
-      console.log('✅ TokenClient created:', window.tokenClient !== null);
-      checkAndEnableButton();
-    } catch (e) {
-      console.error('GIS init failed:', e);
-    }
-  };
-  
-  // Check and enable button
-  function checkAndEnableButton() {
-    console.log('🔍 Checking - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
+      checkReady();
+    };
     
-    if (window.gapiInited && window.gisInited) {
-      console.log('✅ Both ready! Enabling button...');
-      
-      // Wait for DOM
-      function enable() {
-        const banner = document.getElementById('authBanner');
-        if (banner) {
-          console.log('✅ Showing banner');
-          banner.classList.remove('hidden');
-          const helpText = banner.querySelector('p');
-          if (helpText) helpText.remove();
+    // Check if both ready and show button
+    function checkReady() {
+      if (window.gapiInited && window.gisInited) {
+        // Wait for DOM
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', showButton);
         } else {
-          console.log('⏳ Banner not found, retrying...');
-          setTimeout(enable, 50);
+          showButton();
         }
-      }
-      
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', enable);
-      } else {
-        enable();
       }
     }
-  }
-  
-  // Fallback
-  window.addEventListener('load', function() {
-    setTimeout(function() {
-      console.log('⏰ Fallback check - GAPI:', window.gapiInited, 'GIS:', window.gisInited);
-      
-      if (!window.gapiInited || !window.gisInited) {
-        const banner = document.getElementById('authBanner');
-        if (banner) {
-          banner.classList.remove('hidden');
-          banner.className = 'bg-amber-50 border-b border-amber-300 p-4 text-center';
-          banner.innerHTML = '<div class="text-amber-800 font-bold">⚠️ APIs laden mislukt</div><button onclick="location.reload()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded">🔄 Herladen</button>';
-        }
+    
+    // Show login button
+    function showButton() {
+      const banner = document.getElementById('authBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        const help = banner.querySelector('p');
+        if (help) help.remove();
       }
-    }, 5000);
-  });
+    }
+    
+    // Fallback - show button after 3 seconds anyway
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        if (!document.getElementById('authBanner').classList.contains('hidden')) {
+          return; // Already visible
+        }
+        showButton(); // Force show
+      }, 3000);
+    });
+  </script>
   
-  console.log('✓ Inline script complete');
-</script>
-  
-  <!-- Google API -->
+  <!-- Google APIs -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   
-  <!-- Custom Styles - FIXED PATH -->
-  <link rel="stylesheet" href="css/styles.css?v=12">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
 
@@ -132,12 +106,11 @@
     </div>
   </header>
 
-  <!-- Settings Panel (hidden by default) -->
+  <!-- Settings Panel -->
   <div id="settingsPanel" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-xl border p-4 z-40 w-80">
     <h3 class="font-bold text-lg mb-3">⚙️ Instellingen</h3>
     
     <div class="space-y-3">
-      <!-- Auto-refresh toggle -->
       <div class="flex items-center justify-between">
         <label class="text-sm font-medium">Auto-refresh</label>
         <button onclick="toggleAutoRefresh()" id="autoRefreshToggle" 
@@ -146,18 +119,14 @@
         </button>
       </div>
       
-      <!-- Cache info -->
       <div class="border-t pt-3">
         <div class="text-sm font-medium mb-2">Cache</div>
-        <div id="cacheStats" class="text-xs text-gray-600 mb-2">
-          Laden...
-        </div>
+        <div id="cacheStats" class="text-xs text-gray-600 mb-2">Laden...</div>
         <button onclick="clearCache()" class="text-sm text-red-600 hover:text-red-800">
           🗑️ Cache wissen
         </button>
       </div>
       
-      <!-- Sign out -->
       <div class="border-t pt-3">
         <button onclick="handleSignOut()" class="w-full text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded">
           🚪 Uitloggen
@@ -166,16 +135,22 @@
     </div>
   </div>
 
+  <!-- Auth Banner -->
+  <div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
+    <button onclick="handleAuthClick()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
+      🔐 Log in met Google
+    </button>
+    <p class="text-xs text-gray-600 mt-2">Wacht tot APIs geladen zijn...</p>
+  </div>
+
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 py-8">
     
     <!-- Projects Overview -->
     <section class="mb-8">
-      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-        📁 Projecten
-      </h2>
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2">📁 Projecten</h2>
       <div id="projectsOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Projects will be loaded here -->
+        <div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>
       </div>
     </section>
 
@@ -193,12 +168,12 @@
              class="w-full p-3 border rounded-lg shadow-sm">
     </div>
 
-    <!-- Project Info Banner (hidden by default) -->
+    <!-- Project Info Banner -->
     <div id="projectInfo" class="hidden"></div>
 
     <!-- Categories Grid -->
     <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <!-- Categories will be loaded here -->
+      <div class="col-span-full text-center py-10 text-gray-400">👆 Selecteer een project</div>
     </div>
 
   </main>
@@ -214,15 +189,15 @@
     </div>
   </div>
 
-  <!-- Scripts - VERSIE 12 met Error Recovery (CORRECTE VOLGORDE!) -->
-  <script src="js/config.js?v=12"></script>
-  <script src="js/cache-manager.js?v=12"></script>
-  <script src="js/auto-refresh.js?v=12"></script>
-  <script src="js/error-recovery.js?v=12"></script>
-  <script src="js/auth.js?v=12"></script>
-  <script src="js/drive-api.js?v=12"></script>
-  <script src="js/ui.js?v=12"></script>
-  <script src="js/main.js?v=12"></script>
+  <!-- Scripts - v13 -->
+  <script src="js/config.js?v=13"></script>
+  <script src="js/cache-manager.js?v=13"></script>
+  <script src="js/auto-refresh.js?v=13"></script>
+  <script src="js/error-recovery.js?v=13"></script>
+  <script src="js/auth.js?v=13"></script>
+  <script src="js/drive-api.js?v=13"></script>
+  <script src="js/ui.js?v=13"></script>
+  <script src="js/main.js?v=13"></script>
 
 </body>
 </html>
