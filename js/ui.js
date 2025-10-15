@@ -10,7 +10,7 @@ function filterProjectsByAccess(projects, userEmail) {
   return projects || [];
 }
 
-// **FIXED: Render projects overview grid with DYNAMIC category counting**
+// **FIXED: Render projects overview grid with DYNAMIC category counting + PROGRESSIVE LOADING**
 function renderProjectsOverview(projects) {
   const root = document.getElementById('projectsOverview');
   
@@ -25,22 +25,27 @@ function renderProjectsOverview(projects) {
     // Use dynamic categories from the project
     const categories = p.dynamicCategories || [];
     const categoryCount = categories.length;
+    const isLoading = !p._categoriesLoaded;
     
     // Always show 100% when categories exist (we're not comparing to a target)
     const pct = categoryCount > 0 ? 100 : 0;
 
-    // Show first 4 categories as quick links
-    const quick = categories.slice(0, 4).map(cat => {
-      // Remove number prefix for cleaner display
-      const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
-      return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
-        onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')">
-        ${cat.icon} ${cleanTitle}
-      </button>`;
-    }).join(' ');
+    // Show first 4 categories as quick links (if loaded)
+    let quick = '';
+    if (isLoading) {
+      quick = '<div class="text-xs text-gray-500 italic">⏳ Categorieën laden...</div>';
+    } else if (categories.length > 0) {
+      quick = categories.slice(0, 4).map(cat => {
+        const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
+        return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
+          onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')">
+          ${cat.icon} ${cleanTitle}
+        </button>`;
+      }).join(' ');
+    }
 
     return `
-      <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow">
+      <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow ${isLoading ? 'opacity-75' : ''}">
         <div class="flex items-start justify-between mb-3">
           <div>
             <div class="text-lg font-bold">${p.name}</div>
@@ -51,13 +56,20 @@ function renderProjectsOverview(projects) {
             📂 Open hoofdmap
           </button>
         </div>
-        <div class="text-sm mb-2 font-medium">${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}</div>
-        <div class="w-full h-2 bg-gray-200 rounded mb-3">
-          <div class="h-2 bg-green-500 rounded transition-all" style="width:${pct}%"></div>
+        <div class="text-sm mb-2 font-medium">
+          ${isLoading 
+            ? '<span class="text-gray-500">⏳ Laden...</span>' 
+            : `${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}`
+          }
         </div>
-        ${categories.length > 0 
-          ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
-          : `<div class="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
+        <div class="w-full h-2 bg-gray-200 rounded mb-3">
+          <div class="h-2 ${isLoading ? 'bg-gray-400 animate-pulse' : 'bg-green-500'} rounded transition-all" style="width:${isLoading ? '50' : pct}%"></div>
+        </div>
+        ${isLoading 
+          ? '<div class="mt-3 text-xs text-gray-500">Categorieën worden geladen...</div>'
+          : categories.length > 0 
+            ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
+            : `<div class="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
         }
       </div>
     `;

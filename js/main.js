@@ -20,14 +20,26 @@ document.getElementById('projectSelector').addEventListener('change', async e =>
     showProjectInfo(selectedProject);
     document.getElementById('projectInfo').classList.remove('hidden');
     
-    // **FIXED: Always use dynamic categories from the project**
+    // 🚀 NEW: Ensure categories are loaded before rendering
+    if (!selectedProject._categoriesLoaded) {
+      // Show loading state
+      document.getElementById('categoriesGrid').innerHTML = 
+        '<div class="col-span-full flex justify-center py-10"><div class="loading"></div><span class="ml-3 text-gray-600">Categorieën laden...</span></div>';
+      
+      // Load categories on demand
+      await ensureProjectCategoriesLoaded(selectedProject);
+      
+      // Update project info with correct count
+      showProjectInfo(selectedProject);
+    }
+    
     const categoriesToUse = selectedProject.dynamicCategories || [];
     
     console.log(`Rendering ${categoriesToUse.length} categories for ${selectedProject.name}`);
     
     await renderCategories(categoriesToUse, selectedProject);
     
-    // 🚀 START AUTO-REFRESH FOR THIS PROJECT'S CATEGORIES
+    // Start auto-refresh for this project's categories
     AutoRefreshManager.startCategoriesRefresh(selectedProject);
   } else {
     document.getElementById('projectInfo').classList.add('hidden');

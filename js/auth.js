@@ -164,43 +164,45 @@ function maybeEnableButtons() {
 // Handle authentication click
 async function handleAuthClick() {
   window.tokenClient.callback = async (resp) => {
-    if (resp.error) {
-      console.error('Auth error:', resp);
-      return;
-    }
-    
-    // Hide auth banner
-    document.getElementById('authBanner').classList.add('hidden');
-    
-    // Show loading state
-    document.getElementById('projectsOverview').innerHTML = 
-      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten laden...</span></div>';
-    
-    // Discover projects dynamically (auto-detects access level)
-    const allProjects = await discoverProjects();
-    
-    if (allProjects.length === 0) {
-      showNoAccess();
-      return;
-    }
-    
-    // Display user info
-    await displayUserInfo(allProjects.length);
-    
-    // Store and render projects
-    window.DYNAMIC_PROJECTS = allProjects;
-    renderProjectsOverview(allProjects);
-    
-    // Populate project selector
-    await populateProjectSelector();
-    
-    // Start auto-refresh
-    AutoRefreshManager.startProjectsRefresh();
-    
-    // Show cache stats
-    const stats = CacheManager.getStats();
-    console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
-  };
+  if (resp.error) {
+    console.error('Auth error:', resp);
+    return;
+  }
+  
+  // Hide auth banner
+  document.getElementById('authBanner').classList.add('hidden');
+  
+  // Show loading state (but just for initial fetch, not categories)
+  document.getElementById('projectsOverview').innerHTML = 
+    '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
+  
+  // 🚀 Discover projects (FAST - no categories yet)
+  const allProjects = await discoverProjects();
+  
+  if (allProjects.length === 0) {
+    showNoAccess();
+    return;
+  }
+  
+  // Display user info
+  await displayUserInfo(allProjects.length);
+  
+  // Store and render projects (will show with loading states)
+  window.DYNAMIC_PROJECTS = allProjects;
+  renderProjectsOverview(allProjects);
+  
+  // Populate project selector
+  await populateProjectSelector();
+  
+  // Categories are now loading in background (progressive rendering)
+  
+  // Start auto-refresh
+  AutoRefreshManager.startProjectsRefresh();
+  
+  // Show cache stats
+  const stats = CacheManager.getStats();
+  console.log(`📊 Cache: ${stats.entries} entries, ${stats.sizeKB}KB used`);
+};
   
   // Request access token
   if (gapi.client.getToken() === null) {

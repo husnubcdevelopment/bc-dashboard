@@ -111,7 +111,7 @@ async function listProjectsSharedWithMe(ownerEmail = OWNER_EMAIL) {
   }
 }
 
-// ===== UNIFIED PROJECT DISCOVERY =====
+// ===== UNIFIED PROJECT DISCOVERY (PARALLEL + LAZY LOADING) =====
 
 // Main discovery function - automatically chooses the right method
 async function discoverProjects() {
@@ -144,32 +144,98 @@ async function discoverProjects() {
     return [];
   }
   
-  // Build full project objects with categories
-  const projects = [];
-  for (const folder of projectFolders) {
-    console.log(`Processing project: ${folder.name}`);
-    
-    const categories = await discoverCategoriesFromProject(folder.id);
-    console.log(`  → Found ${categories.length} categories`);
-    
-    // Build folders mapping
-    const folders = {};
-    for (const cat of categories) {
-      folders[cat.id] = cat._folderId;
+  // 🚀 NEW: Return projects immediately WITHOUT loading categories
+  // Categories will be loaded on-demand (lazy loading)
+  const projects = projectFolders.map(folder => ({
+    id: folder.id,
+    name: folder.name,
+    modifiedTime: folder.modifiedTime,
+    baseFolderId: folder.id,
+    dynamicCategories: null, // Will be loaded on demand
+    folders: {},
+    _categoriesLoaded: false
+  }));
+  
+  console.log(`✓ Discovery complete: ${projects.length} projects (categories will load on demand)`);
+  
+  // 🎯 Start loading categories in parallel in the background
+  loadProjectCategoriesInBackground(projects);
+  
+  return projects;
+}
+
+// 🚀 NEW: Load categories for all projects in parallel (background)
+async function loadProjectCategoriesInBackground(projects) {
+  console.log('🔄 Loading categories for all projects in parallel...');
+  
+  const startTime = Date.now();
+  
+  // Load all categories in parallel
+  const categoryPromises = projects.map(async (project, index) => {
+    try {
+      // Small delay for each project to stagger API calls (prevents rate limiting)
+      await new Promise(resolve => setTimeout(resolve, index * 100));
+      
+      const categories = await discoverCategoriesFromProject(project.baseFolderId);
+      
+      // Update project object
+      project.dynamicCategories = categories;
+      project._categoriesLoaded = true;
+      
+      // Build folders mapping
+      project.folders = {};
+      for (const cat of categories) {
+        project.folders[cat.id] = cat._folderId;
+      }
+      
+      console.log(`  ✓ [${index + 1}/${projects.length}] ${project.name}: ${categories.length} categories`);
+      
+      // 🎨 PROGRESSIVE RENDERING: Update UI immediately
+      renderProjectsOverview(window.DYNAMIC_PROJECTS);
+      
+      return { project, categories };
+    } catch (error) {
+      console.error(`  ✗ Failed to load categories for ${project.name}:`, error);
+      project._categoriesLoaded = true; // Mark as loaded (failed) to prevent retry
+      project.dynamicCategories = [];
+      return { project, categories: [] };
     }
-    
-    projects.push({
-      id: folder.id,
-      name: folder.name,
-      modifiedTime: folder.modifiedTime,
-      baseFolderId: folder.id,
-      folders: folders,
-      dynamicCategories: categories
-    });
+  });
+  
+  // Wait for all to complete
+  await Promise.all(categoryPromises);
+  
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`✅ All categories loaded in ${duration}s`);
+  
+  // Final UI update
+  renderProjectsOverview(window.DYNAMIC_PROJECTS);
+  populateProjectSelector();
+}
+
+// 🚀 NEW: Ensure project has categories loaded (lazy load on demand)
+async function ensureProjectCategoriesLoaded(project) {
+  if (project._categoriesLoaded) {
+    return project.dynamicCategories;
   }
   
-  console.log(`✓ Discovery complete: ${projects.length} projects`);
-  return projects;
+  console.log(`⏳ Loading categories for ${project.name}...`);
+  
+  const categories = await discoverCategoriesFromProject(project.baseFolderId);
+  
+  // Update project
+  project.dynamicCategories = categories;
+  project._categoriesLoaded = true;
+  
+  // Build folders mapping
+  project.folders = {};
+  for (const cat of categories) {
+    project.folders[cat.id] = cat._folderId;
+  }
+  
+  console.log(`✓ Loaded ${categories.length} categories for ${project.name}`);
+  
+  return categories;
 }
 
 // ===== CATEGORY & FILE OPERATIONS (unchanged) =====
