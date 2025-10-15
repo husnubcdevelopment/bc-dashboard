@@ -9,71 +9,76 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- INITIALIZATION - MOET VOOR GOOGLE API SCRIPTS -->
-  <script>
-    // Global state
-    window.gapiInited = false;
-    window.gisInited = false;
-    window.tokenClient = null;
-    window.CURRENT_USER_EMAIL = null;
-    window.DYNAMIC_PROJECTS = [];
-    window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
-    window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-    
-    // GAPI loader
-    window.gapiLoaded = function() {
-      gapi.load('client', function() {
-        gapi.client.init({
-          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-        }).then(function() {
-          window.gapiInited = true;
-          checkReady();
-        });
+ <script>
+  // Global state
+  window.gapiInited = false;
+  window.gisInited = false;
+  window.tokenClient = null;
+  window.CURRENT_USER_EMAIL = null;
+  window.DYNAMIC_PROJECTS = [];
+  window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+  window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+  
+  let apisReady = false;
+  
+  // GAPI loader
+  window.gapiLoaded = function() {
+    gapi.load('client', function() {
+      gapi.client.init({
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+      }).then(function() {
+        window.gapiInited = true;
+        checkReady();
       });
-    };
-    
-    // GIS loader
-    window.gisLoaded = function() {
-      window.tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: window.CLIENT_ID,
-        scope: window.SCOPES,
-        callback: '',
-      });
-      window.gisInited = true;
-      checkReady();
-    };
-    
-    // Check if both ready and show button
-    function checkReady() {
-      if (window.gapiInited && window.gisInited) {
-        // Wait for DOM
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', showButton);
-        } else {
-          showButton();
-        }
-      }
-    }
-    
-    // Show login button
-    function showButton() {
-      const banner = document.getElementById('authBanner');
-      if (banner) {
-        banner.classList.remove('hidden');
-        const help = banner.querySelector('p');
-        if (help) help.remove();
-      }
-    }
-    
-    // Fallback - show button after 3 seconds anyway
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        if (!document.getElementById('authBanner').classList.contains('hidden')) {
-          return; // Already visible
-        }
-        showButton(); // Force show
-      }, 3000);
     });
-  </script>
+  };
+  
+  // GIS loader
+  window.gisLoaded = function() {
+    window.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: window.CLIENT_ID,
+      scope: window.SCOPES,
+      callback: '',
+    });
+    window.gisInited = true;
+    checkReady();
+  };
+  
+  // Check if both ready
+  function checkReady() {
+    if (window.gapiInited && window.gisInited) {
+      apisReady = true;
+      tryShowButton();
+    }
+  }
+  
+  // Try to show button (will retry until DOM ready)
+  function tryShowButton() {
+    const banner = document.getElementById('authBanner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      const help = banner.querySelector('p');
+      if (help) help.remove();
+    } else {
+      // Retry after 50ms if element not found
+      setTimeout(tryShowButton, 50);
+    }
+  }
+  
+  // When DOM is ready, show button if APIs already loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    if (apisReady) {
+      tryShowButton();
+    }
+  });
+  
+  // Final fallback - force show after 3 seconds
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      tryShowButton();
+    }, 3000);
+  });
+</script>
   
   <!-- Google APIs -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
