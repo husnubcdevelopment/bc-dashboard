@@ -203,20 +203,33 @@ header p {
   gap: 0.5rem;
 }
 
-.category-items li {
+/* Subfolder item - BASE STYLING */
+.category-subfolder-item {
   font-size: 0.875rem;
   color: var(--text-secondary);
   padding: 0.5rem 0.75rem;
   background: rgba(255, 255, 255, 0.5);
-  border-left: 3px solid var(--category-border);
   border-radius: 6px;
   transition: all 0.2s ease;
+  cursor: default;
 }
 
-.category-items li:hover {
+/* 🆕 GOUD = Heeft bestanden (permanent) */
+.category-subfolder-item.has-files {
+  border-left: 3px solid var(--color-gold-500);
+  background: rgba(184, 151, 90, 0.05);
+}
+
+/* 🆕 GRIJS = Leeg (permanent) */
+.category-subfolder-item.empty {
+  border-left: 3px solid #d1d5db;
+  opacity: 0.7;
+}
+
+/* Optional: Hover effect voor betere UX (ook op touch devices) */
+.category-subfolder-item:active {
   background: white;
-  border-left-color: var(--color-gold-500);
-  padding-left: 1rem;
+  transform: translateX(2px);
 }
 
 /* ========================================
@@ -267,7 +280,7 @@ header p {
 }
 
 /* ========================================
-   FILE ITEMS - IBM-style list
+   FILE ITEMS - style list
 ======================================== */
 .file-item {
   background: var(--bg-primary);

@@ -147,10 +147,10 @@ function renderCategories(categories, project) {
 
   categories.forEach(cat => {
     const card = document.createElement('div');
-    card.className = 'category-card';
-    
     const folderId = cat._folderId;
     const categoryNumber = cat._categoryNumber || '?';
+    
+    card.className = 'category-card';
     
     // Clean title (remove number prefix)
     const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
@@ -159,12 +159,19 @@ function renderCategories(categories, project) {
       card.onclick = () => showFilesModal(cat, folderId);
     }
 
+    // 🆕 RENDER SUBFOLDERS MET FILE COUNT INDICATOR
     let itemsHTML = '';
-    if (cat.items?.length) {
+    if (cat.subfolders && cat.subfolders.length > 0) {
       itemsHTML = `
         <div class="category-items">
           <ul>
-            ${cat.items.map(item => `<li>${item}</li>`).join('')}
+            ${cat.subfolders.map(subfolder => {
+              const itemClass = subfolder.hasFiles 
+                ? 'category-subfolder-item has-files' 
+                : 'category-subfolder-item empty';
+              
+              return `<li class="${itemClass}">${subfolder.name}</li>`;
+            }).join('')}
           </ul>
         </div>
       `;

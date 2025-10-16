@@ -276,11 +276,41 @@ async function discoverCategoriesFromProject(projectFolderId, useCache = true) {
   const categoryFolders = folders.filter(f => /^\d{1,2}[\s._-]/.test(f.name));
   const categories = buildDynamicCategories(categoryFolders);
   
-  // Populate subfolders as items
+  // Populate subfolders as items + CHECK FILE COUNT
   for (const category of categories) {
     const subfolders = await listChildFolders(category._folderId, useCache);
-    category.items = subfolders.map(sf => sf.name);
-    category.subfolders = subfolders;
+    
+    // 🆕 COUNT FILES PER SUBFOLDER
+    const subfoldersWithCount = [];
+    for (const subfolder of subfolders) {
+      try {
+        const filesResponse = await gapi.client.drive.files.list({
+          q: `'${subfolder.id}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
+          fields: 'files(id)',
+          pageSize: 10 // We hoeven alleen te weten: 0 of >0
+        });
+        
+        const fileCount = (filesResponse.result.files || []).length;
+        
+        subfoldersWithCount.push({
+          id: subfolder.id,
+          name: subfolder.name,
+          fileCount: fileCount,
+          hasFiles: fileCount > 0
+        });
+      } catch (e) {
+        console.error(`Error counting files in ${subfolder.name}:`, e);
+        subfoldersWithCount.push({
+          id: subfolder.id,
+          name: subfolder.name,
+          fileCount: 0,
+          hasFiles: false
+        });
+      }
+    }
+    
+    category.items = subfoldersWithCount.map(sf => sf.name); // Voor backward compatibility
+    category.subfolders = subfoldersWithCount; // 🆕 Met file count
   }
   
   CacheManager.set('categories', projectFolderId, categories);
