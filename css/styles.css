@@ -1,87 +1,235 @@
-/* BC Development Dashboard - Styles */
+/* BC Development Dashboard - Premium Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
-  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   background: var(--bg-secondary);
   color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ========================================
-   PREMIUM CATEGORY CARDS (Single Color)
+   HEADER - IBM-style gradient
 ======================================== */
+header {
+  background: linear-gradient(135deg, var(--color-navy-900) 0%, var(--color-navy-700) 100%);
+  border-bottom: 1px solid rgba(184, 151, 90, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+header .max-w-7xl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.02em;
+}
+
+header p {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 400;
+}
+
+/* ========================================
+   PROJECT CARDS - Premium Grid
+======================================== */
+#projectsOverview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.project-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-navy-900), var(--color-gold-500));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: var(--color-gold-500);
+}
+
+.project-card:hover::before {
+  opacity: 1;
+}
+
+/* ========================================
+   CATEGORY CARDS - IBM-style grid met icons
+======================================== */
+#categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
 .category-card {
   background: var(--category-bg);
   border: 2px solid var(--category-border);
-  color: var(--category-text);
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  padding: 1.5rem;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subtle gradient overlay */
+.category-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--color-gold-500) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .category-card:hover {
-  background: var(--category-hover-bg);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   border-color: var(--category-hover-border);
-  color: var(--category-text-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
+  background: var(--category-hover-bg);
 }
 
-/* Legacy class name support */
-.category-premium {
-  background: var(--category-bg);
-  border: 2px solid var(--category-border);
+.category-card:hover::after {
+  opacity: 0.05;
+}
+
+/* Category icon (SVG placeholder for now) */
+.category-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-navy-900), var(--color-navy-700));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.category-card:hover .category-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.category-title {
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--category-text);
+  margin-bottom: 0.5rem;
+  transition: color 0.2s ease;
+  line-height: 1.4;
+}
+
+.category-card:hover .category-title {
+  color: var(--category-text-hover);
+}
+
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  border: 1px solid var(--border-light);
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
-.category-premium:hover {
-  background: var(--category-hover-bg);
-  border-color: var(--category-hover-border);
-  color: var(--category-text-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card-hover);
+.category-card:hover .category-badge {
+  background: var(--color-gold-500);
+  color: white;
+  border-color: var(--color-gold-500);
 }
 
-/* File Items */
-.file-item {
-  transition: all 0.15s ease;
-  background: var(--bg-primary);
-  border-color: var(--border-light);
+/* Subfolders list */
+.category-items {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
 }
 
-.file-item:hover {
-  background: var(--bg-tertiary);
-  box-shadow: var(--shadow-md);
+.category-items ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* Pulse Dot Animation */
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  background: var(--color-success);
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  animation: pulse 1.6s infinite;
+.category-items li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-left: 3px solid var(--category-border);
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-  }
+.category-items li:hover {
+  background: white;
+  border-left-color: var(--color-gold-500);
+  padding-left: 1rem;
 }
 
-/* Modal */
+/* ========================================
+   FILE MODAL - Premium overlay
+======================================== */
 .modal {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
 }
 
 .modal.active {
@@ -90,18 +238,140 @@ body {
   justify-content: center;
 }
 
-/* Loading Spinner */
+.modal > div {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+  max-width: 900px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   FILE ITEMS - IBM-style list
+======================================== */
+.file-item {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 1rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.file-item:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--color-gold-500);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateX(4px);
+}
+
+/* ========================================
+   BUTTONS - Premium style
+======================================== */
+button, .btn {
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Primary button */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-navy-900), var(--color-navy-700));
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-navy-800), var(--color-navy-600));
+}
+
+/* ========================================
+   LOADING SPINNER - Modern
+======================================== */
 .loading {
+  width: 40px;
+  height: 40px;
   border: 3px solid var(--border-light);
-  border-top: 3px solid var(--accent-primary);
+  border-top-color: var(--color-navy-900);
   border-radius: 50%;
-  width: 38px;
-  height: 38px;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   PULSE DOT - Live indicator
+======================================== */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+}
+
+/* ========================================
+   RESPONSIVE - Mobile first
+======================================== */
+@media (max-width: 768px) {
+  #projectsOverview,
+  #categoriesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .category-card {
+    padding: 1.25rem;
   }
 }
