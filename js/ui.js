@@ -123,7 +123,7 @@ function showProjectInfo(project) {
   `;
 }
 
-// **FIXED: Render categories grid with dynamic categories**
+// **FIXED: Render categories grid with SINGLE PREMIUM COLOR**
 function renderCategories(categories, project) {
   const grid = document.getElementById('categoriesGrid');
   grid.innerHTML = '';
@@ -147,30 +147,38 @@ function renderCategories(categories, project) {
 
   categories.forEach(cat => {
     const card = document.createElement('div');
-    const folderId = cat._folderId; // Use the folder ID stored in the category
-    card.className = `category-card ${cat.colorClass} border-2 rounded-xl shadow p-5`;
+    const folderId = cat._folderId;
+    
+    // 🎨 NIEUWE STYLING: Gebruik inline styles voor single-color system
+    card.className = 'category-card rounded-xl shadow p-5';
+    
+    // Voeg inline styles toe vanuit de category data
+    card.style.background = cat.bg || '#f0f4f8';
+    card.style.border = `2px solid ${cat.border || '#d9e2ec'}`;
+    card.style.color = cat.text || '#334e68';
 
     if (folderId && isAuth) {
       card.onclick = () => showFilesModal(cat, folderId);
+      card.style.cursor = 'pointer';
     }
 
     let itemsHTML = '';
     if (cat.items?.length) {
       itemsHTML = '<ul class="space-y-2 mt-2">';
       cat.items.forEach(it => {
-        itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4 border-current">${it}</li>`;
+        itemsHTML += `<li class="text-sm pl-4 py-1.5 bg-white/60 rounded border-l-4" style="border-color: ${cat.border || '#d9e2ec'}">${it}</li>`;
       });
       itemsHTML += '</ul>';
     }
 
     const badge = folderId && isAuth
-      ? '<span class="text-xs bg-white/90 px-2 py-1 rounded-full font-medium">📂 Bekijk bestanden</span>'
+      ? '<span class="text-xs bg-white/90 px-2 py-1 rounded-full font-medium">📁 Bekijk bestanden</span>'
       : '<span class="text-xs bg-red-100 px-2 py-1 rounded-full font-medium text-red-600">⚠️ Login vereist</span>';
 
+    // 🎯 GEEN EMOJI bij category title - alleen de text
     card.innerHTML = `
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-3">
-          <span class="text-2xl">${cat.icon}</span>
           <h3 class="text-lg font-bold">${cat.title}</h3>
         </div>
         ${badge}

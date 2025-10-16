@@ -4,66 +4,54 @@
 window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
 window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Root folder ID - Your main "BC Development/Projects" folder
+// Root folder ID
 const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
+const OWNER_EMAIL = 'info@bcimmo.be';
 
-// Owner email for filtering shared projects (optional but recommended)
-// This ensures we only show projects from BC Development, not random shared folders
-const OWNER_EMAIL = 'info@bcimmo.be'; // Change to your BC Development Google Workspace email
-
-// Project naming convention filters (optional - helps filter out non-project folders)
-// Adjust these based on your naming conventions
+// Project naming convention filters
 const PROJECT_NAME_FILTERS = {
   enabled: true,
   patterns: [
-    /^\d{4}_/,        // Starts with year: 2025_ProjectName
-    /_[A-Z]/,         // Contains underscore + capital letter
+    /^\d{4}_/,
+    /_[A-Z]/,
   ]
 };
 
-// DYNAMIC CATEGORIES: Auto-discover from Drive + fallback definitions
-const CATEGORY_TEMPLATES = {
-  1: { icon: "📊", colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200" },
-  2: { icon: "✅", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  3: { icon: "👥", colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200" },
-  4: { icon: "💰", colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200" },
-  5: { icon: "🗺️", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
-  6: { icon: "🏢", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
-  7: { icon: "📄", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  8: { icon: "⚖️", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  9: { icon: "💡", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
-  10: { icon: "📈", colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200" },
-  11: { icon: "📋", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
-  12: { icon: "📤", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
-  13: { icon: "✔️", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
-  14: { icon: "📐", colorClass: "bg-teal-100 border-teal-400 text-teal-900 hover:bg-teal-200" },
-  15: { icon: "🔧", colorClass: "bg-pink-100 border-pink-400 text-pink-900 hover:bg-pink-200" },
-  16: { icon: "🎯", colorClass: "bg-cyan-100 border-cyan-400 text-cyan-900 hover:bg-cyan-200" },
-  17: { icon: "🔍", colorClass: "bg-lime-100 border-lime-400 text-lime-900 hover:bg-lime-200" },
-  18: { icon: "📱", colorClass: "bg-fuchsia-100 border-fuchsia-400 text-fuchsia-900 hover:bg-fuchsia-200" },
-  19: { icon: "🌟", colorClass: "bg-amber-100 border-amber-400 text-amber-900 hover:bg-amber-200" },
-  20: { icon: "🎨", colorClass: "bg-rose-100 border-rose-400 text-rose-900 hover:bg-rose-200" }
+// ========================================
+// 🎨 PREMIUM SINGLE COLOR SYSTEM
+// Alle mappen krijgen DEZELFDE premium kleur
+// Clean, elegant, professional - GEEN carnaval
+// ========================================
+
+// Kies ÉÉN premium kleur voor alle categorieën
+// Geïnspireerd door je logo: Navy + Gold accent
+const PREMIUM_CATEGORY_STYLE = {
+  // Light mode
+  bg: '#f0f4f8',           // Zeer subtiel licht blauw/grijs
+  border: '#d9e2ec',       // Zachte border
+  text: '#334e68',         // Navy text (van je logo)
+  textHover: '#1e3a52',    // Donkerder navy on hover
+  
+  // Accent (voor hover states)
+  hoverBg: '#e6eef5',      // Iets donkerder bij hover
+  hoverBorder: '#b8975a',  // Gold accent van je logo
+  
+  // Dark mode versie
+  bgDark: '#1f2937',
+  borderDark: '#374151',
+  textDark: '#f0f6fc',
+  hoverBgDark: '#2d3748',
 };
 
-// Default for unknown categories
-const DEFAULT_CATEGORY_STYLE = {
-  icon: "📁",
-  colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200"
-};
+// ========================================
+// 🔧 HELPER FUNCTIONS
+// ========================================
 
-// Categories Configuration
-const CONFIG = {
-  projects: [],
-  categories: []
-};
-
-// Helper: Parse category number from folder name
 function parseCategoryNumber(folderName) {
   const match = folderName.match(/^(\d{1,2})[\s._-]/);
   return match ? parseInt(match[1]) : null;
 }
 
-// Helper: Create category ID from folder name
 function createCategoryId(folderName) {
   return folderName
     .replace(/^\d{1,2}[\s._-]/, '')
@@ -71,12 +59,22 @@ function createCategoryId(folderName) {
     .replace(/[\s._-]+/g, '_');
 }
 
-// Helper: Get category style (icon & color)
+// 🎨 Get category style - ALLE MAPPEN DEZELFDE PREMIUM KLEUR
 function getCategoryStyle(categoryNumber) {
-  return CATEGORY_TEMPLATES[categoryNumber] || DEFAULT_CATEGORY_STYLE;
+  // Iedereen krijgt dezelfde style - clean & premium
+  return {
+    icon: "", // GEEN emoji
+    colorClass: "category-premium", // Single class voor alle categorieën
+    bg: PREMIUM_CATEGORY_STYLE.bg,
+    border: PREMIUM_CATEGORY_STYLE.border,
+    text: PREMIUM_CATEGORY_STYLE.text,
+    textHover: PREMIUM_CATEGORY_STYLE.textHover,
+    hoverBg: PREMIUM_CATEGORY_STYLE.hoverBg,
+    hoverBorder: PREMIUM_CATEGORY_STYLE.hoverBorder
+  };
 }
 
-// Helper: Build categories dynamically from folders
+// Build categories dynamically from folders
 function buildDynamicCategories(folders) {
   const categories = [];
   const seenNumbers = new Set();
@@ -100,7 +98,13 @@ function buildDynamicCategories(folders) {
       id: id,
       title: folder.name,
       icon: style.icon,
-      colorClass: style.colorClass,
+      colorClass: style.colorClass, // "category-premium" voor IEDEREEN
+      bg: style.bg,
+      border: style.border,
+      text: style.text,
+      textHover: style.textHover,
+      hoverBg: style.hoverBg,
+      hoverBorder: style.hoverBorder,
       items: [],
       subfolders: [],
       _folderId: folder.id,
@@ -111,9 +115,12 @@ function buildDynamicCategories(folders) {
   return categories;
 }
 
-// Helper: Check if folder name matches project naming conventions
 function matchesProjectNamingConvention(folderName) {
   if (!PROJECT_NAME_FILTERS.enabled) return true;
-  
   return PROJECT_NAME_FILTERS.patterns.some(pattern => pattern.test(folderName));
 }
+
+const CONFIG = {
+  projects: [],
+  categories: []
+};
