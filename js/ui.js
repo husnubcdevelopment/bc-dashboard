@@ -587,20 +587,14 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// **GAMMA-INSPIRED: Refresh files with modern card layout**
+// **WORKING VERSION: Refresh files with subfolder display (SHOWS ALL SUBFOLDERS)**
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
 
-  box.innerHTML = `
-    <div class="flex justify-center items-center p-12">
-      <div class="flex flex-col items-center gap-3">
-        <div class="loading"></div>
-        <div class="text-sm text-gray-500">Bestanden laden...</div>
-      </div>
-    </div>
-  `;
+  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
   
+  // Get folder structure with subfolders
   const structure = await getFolderStructure(folderId);
   const allFiles = structure.files;
   const subfolders = structure.subfolders;
@@ -608,113 +602,101 @@ async function refreshFiles(folderId) {
   const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
   const totalFolders = subfolders.length;
 
+  // Show message if completely empty (no files AND no subfolders)
   if (totalFiles === 0 && totalFolders === 0) {
-    box.innerHTML = `
-      <div class="empty-state-modern">
-        <div class="empty-state-icon">📭</div>
-        <h3 class="empty-state-title">Geen bestanden gevonden</h3>
-        <p class="empty-state-description">
-          Deze categorie bevat nog geen bestanden of submappen. 
-          Upload bestanden in Google Drive om ze hier te zien.
-        </p>
-      </div>
-    `;
+    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
     return;
   }
 
   let html = `
-    <!-- Modal Header Stats -->
-    <div class="modal-stats-bar">
-      <div class="stat-pill">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <span>${totalFiles} ${totalFiles === 1 ? 'bestand' : 'bestanden'}</span>
-      </div>
-      
-      <div class="stat-pill">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-        </svg>
-        <span>${totalFolders} ${totalFolders === 1 ? 'map' : 'mappen'}</span>
-      </div>
-      
-      <button onclick="forceRefreshFiles('${folderId}')" class="refresh-btn">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        <span>Vernieuwen</span>
+    <div class="mb-3 flex justify-between items-center">
+      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
+      <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+        🔄 Vernieuwen
       </button>
     </div>
   `;
 
-  // Main folder files
+  // Display main folder files
   if (allFiles.length > 0) {
-    html += `
-      <div class="file-section">
-        <h4 class="file-section-title">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-          </svg>
-          Hoofdmap
-          <span class="file-count-badge">${allFiles.length}</span>
-        </h4>
-        <div class="file-grid">
-          ${allFiles.map(f => renderFileCard(f)).join('')}
+    html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
+    allFiles.forEach(f => {
+      const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+      html += `
+        <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
+             onclick="window.open('${f.webViewLink}','_blank')">
+          <div class="flex items-center gap-3 flex-1">
+            <span class="text-2xl">📄</span>
+            <div>
+              <p class="font-medium text-gray-800">
+                ${f.name}
+                ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+              </p>
+              <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+            </div>
+          </div>
+          <span class="text-blue-500">🔗</span>
         </div>
-      </div>
-    `;
+      `;
+    });
+    html += '</div></div>';
   }
 
-  // Subfolders
+  // ✨ Display ALL subfolders (even if empty)
   subfolders.forEach(subfolder => {
     const fileCount = subfolder.files.length;
     const isEmpty = fileCount === 0;
     
-   html += `
-    <div class="file-section ${isEmpty ? 'empty' : ''}">
-      <div class="file-section-header">
-        <div class="file-section-title">
-          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-          </svg>
-          <span class="flex-1 min-w-0 truncate">${subfolder.name}</span>
-          <span class="file-count-badge ${isEmpty ? 'empty' : ''}">${fileCount}</span>
-        </div>
-      </div>
+    html += `
+      <div class="mb-4">
+        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          📁 ${subfolder.name} 
+          <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
+            ${fileCount} bestand(en)
+          </span>
+        </h4>
     `;
+    
     if (isEmpty) {
+      // Show empty state for subfolders without files
       html += `
-        <div class="empty-folder-state">
-          <div class="text-gray-400 text-sm">📂 Nog geen bestanden</div>
+        <div class="pl-4 border-l-2 border-gray-200">
+          <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm">
+            📭 Nog geen bestanden in deze map
+          </div>
         </div>
       `;
     } else {
-      html += `
-        <div class="file-grid">
-          ${subfolder.files.map(f => renderFileCard(f)).join('')}
-        </div>
-      `;
+      // Show files in subfolder
+      html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
+      
+      subfolder.files.forEach(f => {
+        const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+        html += `
+          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
+               onclick="window.open('${f.webViewLink}','_blank')">
+            <div class="flex items-center gap-3 flex-1">
+              <span class="text-2xl">📄</span>
+              <div>
+                <p class="font-medium text-gray-800">
+                  ${f.name}
+                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+                </p>
+                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+              </div>
+            </div>
+            <span class="text-blue-500">🔗</span>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
     }
     
     html += '</div>';
   });
 
-  html += `
-    <div class="modal-footer-info">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-      </svg>
-      <span>Automatisch ververst elke 30 seconden</span>
-    </div>
-  `;
-
+  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s • Klik 🔄 voor directe update</p>';
   box.innerHTML = html;
 }
 
