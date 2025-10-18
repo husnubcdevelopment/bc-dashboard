@@ -22,55 +22,60 @@ function renderProjectsOverview(projects) {
   console.log('Rendering projects overview with', projects.length, 'projects');
 
   root.innerHTML = projects.map(p => {
-    // Use dynamic categories from the project
     const categories = p.dynamicCategories || [];
     const categoryCount = categories.length;
     const isLoading = !p._categoriesLoaded;
-    
-    // Always show 100% when categories exist (we're not comparing to a target)
     const pct = categoryCount > 0 ? 100 : 0;
 
-    // Show first 4 categories as quick links (if loaded)
     let quick = '';
     if (isLoading) {
       quick = '<div class="text-xs text-gray-500 italic">⏳ Categorieën laden...</div>';
     } else if (categories.length > 0) {
       quick = categories.slice(0, 4).map(cat => {
         const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
-        return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50"
+        return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50 truncate max-w-full"
           onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')">
-          ${cat.icon} ${cleanTitle}
+          ${cleanTitle}
         </button>`;
       }).join(' ');
     }
 
     return `
       <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow ${isLoading ? 'opacity-75' : ''}">
-        <div class="flex items-start justify-between mb-3">
-          <div>
-            <div class="text-lg font-bold">${p.name}</div>
-            <div class="text-xs text-gray-500">Laatst gewijzigd: ${new Date(p.modifiedTime).toLocaleDateString('nl-BE')}</div>
+        <div class="flex flex-col gap-3">
+          <!-- Project Title & Button Row -->
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="text-lg font-bold truncate" title="${p.name}">${p.name}</div>
+              <div class="text-xs text-gray-500">Laatst gewijzigd: ${new Date(p.modifiedTime).toLocaleDateString('nl-BE')}</div>
+            </div>
+            <button class="flex-shrink-0 text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+              onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">
+              📂 Open hoofdmap
+            </button>
           </div>
-          <button class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors"
-            onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">
-            📂 Open hoofdmap
-          </button>
-        </div>
-        <div class="text-sm mb-2 font-medium">
+
+          <!-- Category Count & Progress -->
+          <div>
+            <div class="text-sm mb-2 font-medium">
+              ${isLoading 
+                ? '<span class="text-gray-500">⏳ Laden...</span>' 
+                : `${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}`
+              }
+            </div>
+            <div class="w-full h-2 bg-gray-200 rounded">
+              <div class="h-2 ${isLoading ? 'bg-gray-400 animate-pulse' : 'bg-green-500'} rounded transition-all" style="width:${isLoading ? '50' : pct}%"></div>
+            </div>
+          </div>
+
+          <!-- Quick Links -->
           ${isLoading 
-            ? '<span class="text-gray-500">⏳ Laden...</span>' 
-            : `${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}`
+            ? '<div class="text-xs text-gray-500">Categorieën worden geladen...</div>'
+            : categories.length > 0 
+              ? `<div class="flex flex-wrap gap-2">${quick}</div>`
+              : `<div class="text-xs text-amber-600 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden</div>`
           }
         </div>
-        <div class="w-full h-2 bg-gray-200 rounded mb-3">
-          <div class="h-2 ${isLoading ? 'bg-gray-400 animate-pulse' : 'bg-green-500'} rounded transition-all" style="width:${isLoading ? '50' : pct}%"></div>
-        </div>
-        ${isLoading 
-          ? '<div class="mt-3 text-xs text-gray-500">Categorieën worden geladen...</div>'
-          : categories.length > 0 
-            ? `<div class="mt-3 flex flex-wrap gap-2">${quick}</div>`
-            : `<div class="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden - maak mappen aan met nummering (bijv. "1_Prospectie")</div>`
-        }
       </div>
     `;
   }).join('');
