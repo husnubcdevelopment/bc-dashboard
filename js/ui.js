@@ -687,7 +687,7 @@ async function refreshFiles(folderId) {
           <span class="file-count-badge ${isEmpty ? 'empty' : ''}">${fileCount}</span>
         </div>
       </div>
-    
+    `;
     if (isEmpty) {
       html += `
         <div class="empty-folder-state">
