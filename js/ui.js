@@ -588,101 +588,69 @@ async function showFilesModal(category, mainFolderId) {
 }
 
 // **WORKING VERSION: Refresh files with subfolder display (SHOWS ALL SUBFOLDERS)**
+// **DEBUG VERSION: Refresh files with extensive logging**
 async function refreshFiles(folderId) {
-  const box = document.getElementById('filesContainer');
-  if (!box) return;
-
-  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
+  console.log('🔄 refreshFiles START:', folderId);
   
-  // Get folder structure with subfolders
-  const structure = await getFolderStructure(folderId);
-  const allFiles = structure.files;
-  const subfolders = structure.subfolders;
-
-  const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
-  const totalFolders = subfolders.length;
-
-  // Show message if completely empty (no files AND no subfolders)
-  if (totalFiles === 0 && totalFolders === 0) {
-    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
+  const box = document.getElementById('filesContainer');
+  if (!box) {
+    console.error('❌ filesContainer NOT FOUND!');
     return;
   }
 
-  let html = `
-    <div class="mb-3 flex justify-between items-center">
-      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
-      <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-        🔄 Vernieuwen
-      </button>
-    </div>
-  `;
-
-  // Display main folder files
-  if (allFiles.length > 0) {
-    html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
-    allFiles.forEach(f => {
-      const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
-      html += `
-        <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
-             onclick="window.open('${f.webViewLink}','_blank')">
-          <div class="flex items-center gap-3 flex-1">
-            <span class="text-2xl">📄</span>
-            <div>
-              <p class="font-medium text-gray-800">
-                ${f.name}
-                ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-              </p>
-              <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
-            </div>
-          </div>
-          <span class="text-blue-500">🔗</span>
-        </div>
-      `;
+  console.log('✅ filesContainer found');
+  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div><p class="ml-3">Loading...</p></div>';
+  
+  try {
+    console.log('📡 Calling getFolderStructure...');
+    const structure = await getFolderStructure(folderId);
+    
+    console.log('📊 Structure received:', {
+      files: structure.files?.length || 0,
+      subfolders: structure.subfolders?.length || 0
     });
-    html += '</div></div>';
-  }
+    
+    const allFiles = structure.files || [];
+    const subfolders = structure.subfolders || [];
 
-  // ✨ Display ALL subfolders (even if empty)
-  subfolders.forEach(subfolder => {
-    const fileCount = subfolder.files.length;
-    const isEmpty = fileCount === 0;
-    
-    html += `
-      <div class="mb-4">
-        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          📁 ${subfolder.name} 
-          <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
-            ${fileCount} bestand(en)
-          </span>
-        </h4>
+    const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + (sf.files?.length || 0), 0);
+    const totalFolders = subfolders.length;
+
+    console.log(`📈 Totals: ${totalFiles} files, ${totalFolders} folders`);
+
+    // Empty check
+    if (totalFiles === 0 && totalFolders === 0) {
+      console.log('📭 No files or folders found');
+      box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
+      return;
+    }
+
+    console.log('🎨 Starting HTML build...');
+    let html = `
+      <div class="mb-3 flex justify-between items-center">
+        <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
+        <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+          🔄 Vernieuwen
+        </button>
+      </div>
     `;
-    
-    if (isEmpty) {
-      // Show empty state for subfolders without files
-      html += `
-        <div class="pl-4 border-l-2 border-gray-200">
-          <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm">
-            📭 Nog geen bestanden in deze map
-          </div>
-        </div>
-      `;
-    } else {
-      // Show files in subfolder
-      html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
+
+    // Main folder files
+    if (allFiles.length > 0) {
+      console.log(`📄 Rendering ${allFiles.length} main files...`);
+      html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
       
-      subfolder.files.forEach(f => {
+      allFiles.forEach((f, idx) => {
+        console.log(`  - File ${idx + 1}/${allFiles.length}: ${f.name}`);
         const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
         html += `
-          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
+          <div class="flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer bg-white ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
                onclick="window.open('${f.webViewLink}','_blank')">
-            <div class="flex items-center gap-3 flex-1">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
               <span class="text-2xl">📄</span>
-              <div>
-                <p class="font-medium text-gray-800">
-                  ${f.name}
-                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-                </p>
-                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-gray-800 truncate">${f.name}</p>
+                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')}</p>
               </div>
             </div>
             <span class="text-blue-500">🔗</span>
@@ -690,14 +658,81 @@ async function refreshFiles(folderId) {
         `;
       });
       
-      html += '</div>';
+      html += '</div></div>';
+      console.log('✅ Main files HTML complete');
     }
-    
-    html += '</div>';
-  });
 
-  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 30s • Klik 🔄 voor directe update</p>';
-  box.innerHTML = html;
+    // Subfolders
+    console.log(`📁 Rendering ${subfolders.length} subfolders...`);
+    subfolders.forEach((subfolder, idx) => {
+      const fileCount = subfolder.files?.length || 0;
+      const isEmpty = fileCount === 0;
+      
+      console.log(`  - Subfolder ${idx + 1}/${subfolders.length}: ${subfolder.name} (${fileCount} files)`);
+      
+      html += `
+        <div class="mb-4">
+          <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            📁 ${subfolder.name} 
+            <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
+              ${fileCount} bestand(en)
+            </span>
+          </h4>
+      `;
+      
+      if (isEmpty) {
+        html += `
+          <div class="pl-4 border-l-2 border-gray-200">
+            <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm bg-gray-50">
+              📭 Nog geen bestanden in deze map
+            </div>
+          </div>
+        `;
+      } else {
+        html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
+        
+        (subfolder.files || []).forEach(f => {
+          const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+          html += `
+            <div class="flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer bg-white ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
+                 onclick="window.open('${f.webViewLink}','_blank')">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <span class="text-2xl">📄</span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-gray-800 truncate">${f.name}</p>
+                  <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')}</p>
+                </div>
+              </div>
+              <span class="text-blue-500">🔗</span>
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+      }
+      
+      html += '</div>';
+    });
+
+    console.log('✅ Subfolders HTML complete');
+
+    html += '<p class="text-xs text-gray-400 text-center mt-4">⏱️ Auto-refresh elke 30 seconden</p>';
+    
+    console.log('🎨 Setting innerHTML...');
+    box.innerHTML = html;
+    console.log('✅ HTML SET! Rendering complete!');
+    
+  } catch (error) {
+    console.error('❌ ERROR in refreshFiles:', error);
+    console.error('Stack:', error.stack);
+    box.innerHTML = `
+      <div class="p-8 text-center text-red-600">
+        <p class="font-semibold mb-2">⚠️ Error bij laden</p>
+        <p class="text-sm">${error.message}</p>
+        <pre class="text-xs mt-2 text-left bg-gray-100 p-2 rounded overflow-auto">${error.stack}</pre>
+      </div>
+    `;
+  }
 }
 
 // **Helper: Render individual file card**
