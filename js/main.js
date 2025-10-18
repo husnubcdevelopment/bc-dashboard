@@ -3,6 +3,9 @@
 // Initialize Dynamic Projects array
 window.DYNAMIC_PROJECTS = [];
 
+// Current view state
+let currentView = 'dashboard'; // 'dashboard' or 'list'
+
 // Project selector change handler
 document.getElementById('projectSelector').addEventListener('change', async e => {
   const id = e.target.value;
@@ -79,7 +82,10 @@ document.getElementById('searchInput').addEventListener('input', async e => {
 
 // Initialize application on page load
 (function init() {
-  // Show initial message in projects overview
+  // Show initial dashboard message
+  document.getElementById('dashboardWidgets').innerHTML =
+    '<div class="col-span-full text-gray-500 text-center py-8">🔐 Log in om dashboard te laden.</div>';
+  
   document.getElementById('projectsOverview').innerHTML =
     '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
   
@@ -146,3 +152,65 @@ document.addEventListener('click', (e) => {
     panel.classList.add('hidden');
   }
 });
+
+// ========================================
+// 🆕 DASHBOARD FUNCTIONS
+// ========================================
+
+/**
+ * Switch between Dashboard and List view
+ */
+function switchView(view) {
+  currentView = view;
+  
+  const dashboardSection = document.getElementById('dashboardSection');
+  const projectsSection = document.querySelector('#projectsOverview').closest('section');
+  const btnDashboard = document.getElementById('viewDashboard');
+  const btnList = document.getElementById('viewList');
+  
+  if (view === 'dashboard') {
+    dashboardSection.style.display = 'block';
+    projectsSection.style.display = 'none';
+    btnDashboard?.classList.add('active');
+    btnList?.classList.remove('active');
+  } else {
+    dashboardSection.style.display = 'none';
+    projectsSection.style.display = 'block';
+    btnDashboard?.classList.remove('active');
+    btnList?.classList.add('active');
+  }
+}
+
+/**
+ * Select project from dashboard widget and scroll to categories
+ */
+function selectProjectFromWidget(projectId) {
+  const selector = document.getElementById('projectSelector');
+  
+  // Find option with matching project ID
+  const option = Array.from(selector.options).find(opt => 
+    opt.value === projectId || opt.value === `auto:${projectId}`
+  );
+  
+  if (option) {
+    selector.value = option.value;
+    
+    // Trigger change event to load categories
+    selector.dispatchEvent(new Event('change'));
+    
+    // Switch to list view to see categories
+    switchView('list');
+    
+    // Scroll to categories after a short delay
+    setTimeout(() => {
+      document.getElementById('categoriesGrid').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }, 300);
+  }
+}
+
+// Make functions globally accessible
+window.switchView = switchView;
+window.selectProjectFromWidget = selectProjectFromWidget;

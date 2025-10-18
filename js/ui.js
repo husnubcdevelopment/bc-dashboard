@@ -372,6 +372,192 @@ function renderCategories(categories, project) {
   });
 }
 
+// **GAMMA-INSPIRED: Render dashboard overview widgets**
+function renderDashboardWidgets(projects) {
+  const container = document.getElementById('dashboardWidgets');
+  
+  if (!projects || projects.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full empty-state-modern">
+        <div class="empty-state-icon">📊</div>
+        <h3 class="empty-state-title">Geen data beschikbaar</h3>
+        <p class="empty-state-description">Log in om dashboard statistieken te zien.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Calculate stats
+  const totalProjects = projects.length;
+  const loadedProjects = projects.filter(p => p._categoriesLoaded);
+  const totalCategories = loadedProjects.reduce((sum, p) => 
+    sum + (p.dynamicCategories?.length || 0), 0
+  );
+  
+  // Count projects with files
+  const projectsWithFiles = loadedProjects.filter(p => 
+    p.dynamicCategories?.some(cat => 
+      cat.subfolders?.some(sf => sf.hasFiles)
+    )
+  ).length;
+  
+  // Recent activity (files added in last 24h)
+  const now = Date.now();
+  const oneDayAgo = now - (24 * 60 * 60 * 1000);
+  let recentFiles = 0;
+  
+  // Calculate completion percentage
+  const completionRate = totalCategories > 0 
+    ? Math.round((projectsWithFiles / loadedProjects.length) * 100) 
+    : 0;
+
+  // Most active project (most categories)
+  const mostActiveProject = loadedProjects.reduce((max, p) => 
+    (p.dynamicCategories?.length || 0) > (max.dynamicCategories?.length || 0) ? p : max
+  , loadedProjects[0] || {});
+
+  container.innerHTML = `
+    <!-- Widget 1: Total Projects -->
+    <div class="dashboard-widget gradient-navy fade-in">
+      <div>
+        <div class="widget-icon">🏢</div>
+        <div class="widget-title">Totaal Projecten</div>
+      </div>
+      <div>
+        <div class="widget-big-number">${totalProjects}</div>
+        <div class="widget-label">Actieve projecten</div>
+        <div class="widget-sublabel">${loadedProjects.length} volledig geladen</div>
+      </div>
+    </div>
+
+    <!-- Widget 2: Total Categories -->
+    <div class="dashboard-widget gradient-blue fade-in" style="animation-delay: 0.1s">
+      <div>
+        <div class="widget-icon">📁</div>
+        <div class="widget-title">Categorieën</div>
+      </div>
+      <div>
+        <div class="widget-big-number">${totalCategories}</div>
+        <div class="widget-label">Totaal categorieën</div>
+        <div class="widget-sublabel">Verdeeld over ${totalProjects} projecten</div>
+      </div>
+    </div>
+
+    <!-- Widget 3: Projects with Files -->
+    <div class="dashboard-widget gradient-green fade-in" style="animation-delay: 0.2s">
+      <div>
+        <div class="widget-icon">✅</div>
+        <div class="widget-title">Project Status</div>
+      </div>
+      <div>
+        <div class="widget-big-number">${projectsWithFiles}</div>
+        <div class="widget-label">Projecten met bestanden</div>
+        <div class="widget-sublabel">${completionRate}% van alle projecten</div>
+      </div>
+    </div>
+
+    <!-- Widget 4: Completion Progress Circle -->
+    <div class="dashboard-widget gradient-purple fade-in" style="animation-delay: 0.3s">
+      <div>
+        <div class="widget-title">Voltooiingspercentage</div>
+      </div>
+      <div class="widget-progress">
+        <div class="progress-circle-large">
+          <svg viewBox="0 0 120 120">
+            <circle class="progress-circle-bg" cx="60" cy="60" r="54"></circle>
+            <circle class="progress-circle-fill" cx="60" cy="60" r="54"
+                    stroke-dasharray="${2 * Math.PI * 54}"
+                    stroke-dashoffset="${2 * Math.PI * 54 * (1 - completionRate / 100)}">
+            </circle>
+          </svg>
+          <div class="progress-circle-label">${completionRate}%</div>
+        </div>
+        <div>
+          <div class="widget-label">Project voortgang</div>
+          <div class="widget-sublabel">${projectsWithFiles}/${loadedProjects.length} compleet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget 5: Most Active Project -->
+    ${mostActiveProject.name ? `
+      <div class="dashboard-widget gradient-gold fade-in" style="animation-delay: 0.4s">
+        <div>
+          <div class="widget-icon">⭐</div>
+          <div class="widget-title">Meest Actief Project</div>
+        </div>
+        <div>
+          <div class="widget-label" style="font-size: 1.125rem; margin-bottom: 0.5rem;">
+            ${mostActiveProject.name}
+          </div>
+          <div class="widget-sublabel">
+            ${mostActiveProject.dynamicCategories?.length || 0} categorieën
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- Widget 6: Quick Access (Top 3 Projects) -->
+    <div class="dashboard-widget gradient-pink fade-in" style="animation-delay: 0.5s">
+      <div>
+        <div class="widget-icon">⚡</div>
+        <div class="widget-title">Snelle Toegang</div>
+      </div>
+      <div class="widget-list">
+        ${loadedProjects.slice(0, 3).map(p => `
+          <div class="widget-list-item" onclick="selectProjectFromWidget('${p.id}')">
+            <span class="widget-list-item-icon">📂</span>
+            <span class="widget-list-item-text">${p.name}</span>
+            <span class="widget-list-item-badge">${p.dynamicCategories?.length || 0}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// **Helper: Select project from widget**
+function selectProjectFromWidget(projectId) {
+  const selector = document.getElementById('projectSelector');
+  
+  // Find option with matching project ID
+  const option = Array.from(selector.options).find(opt => 
+    opt.value === projectId || opt.value === `auto:${projectId}`
+  );
+  
+  if (option) {
+    selector.value = option.value;
+    // Trigger change event
+    selector.dispatchEvent(new Event('change'));
+    
+    // Scroll to categories
+    document.getElementById('categoriesGrid').scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start' 
+    });
+  }
+}
+
+// **View Toggle Function**
+function switchView(view) {
+  const dashboardSection = document.getElementById('dashboardSection');
+  const projectsOverview = document.getElementById('projectsOverview').parentElement;
+  const btnDashboard = document.getElementById('viewDashboard');
+  const btnList = document.getElementById('viewList');
+  
+  if (view === 'dashboard') {
+    dashboardSection.style.display = 'block';
+    projectsOverview.style.display = 'none';
+    btnDashboard.classList.add('active');
+    btnList.classList.remove('active');
+  } else {
+    dashboardSection.style.display = 'none';
+    projectsOverview.style.display = 'block';
+    btnDashboard.classList.remove('active');
+    btnList.classList.add('active');
+  }
+}
+
 // **Helper function for quick category access from project cards**
 function showCategoryFiles(folderId, title, icon) {
   const category = {

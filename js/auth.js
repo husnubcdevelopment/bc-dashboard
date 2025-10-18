@@ -24,7 +24,10 @@ async function handleAuthClick() {
     // Hide auth banner
     document.getElementById('authBanner').classList.add('hidden');
     
-    // Show loading state
+    // Show loading state in BOTH dashboard and list view
+    document.getElementById('dashboardWidgets').innerHTML = 
+      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Dashboard laden...</span></div>';
+    
     document.getElementById('projectsOverview').innerHTML = 
       '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
     
@@ -39,9 +42,13 @@ async function handleAuthClick() {
     // Display user info
     await displayUserInfo(allProjects.length);
     
-    // Store and render projects (will show with loading states)
+    // Store projects globally
     window.DYNAMIC_PROJECTS = allProjects;
-    renderProjectsOverview(allProjects);
+    
+    // 🆕 Render BOTH dashboard widgets AND project cards
+    console.log('🎨 Rendering dashboard widgets for', allProjects.length, 'projects');
+    renderDashboardWidgets(allProjects);  // Dashboard view
+    renderProjectsOverview(allProjects);  // List view
     
     // Populate project selector
     await populateProjectSelector();
@@ -90,11 +97,16 @@ function showNoAccess() {
     </div>
   `;
   
-  document.getElementById('projectsOverview').innerHTML = 
-    `<div class="col-span-full text-center py-10 text-gray-500">
+  // Show empty state in BOTH views
+  const emptyStateHTML = `
+    <div class="col-span-full text-center py-10 text-gray-500">
       <div class="text-4xl mb-3">📭</div>
       <div>Geen projecten beschikbaar voor dit account</div>
-    </div>`;
+    </div>
+  `;
+  
+  document.getElementById('dashboardWidgets').innerHTML = emptyStateHTML;
+  document.getElementById('projectsOverview').innerHTML = emptyStateHTML;
 }
 
 // Display user information
@@ -141,9 +153,19 @@ function handleSignOut() {
       🔐 Log in met Google
     </button>
   `;
+  
   document.getElementById('userInfo').innerHTML = '';
-  document.getElementById('projectsOverview').innerHTML = 
-    '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
+  
+  // Reset BOTH dashboard and list views
+  const loginMessage = '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
+  document.getElementById('dashboardWidgets').innerHTML = loginMessage;
+  document.getElementById('projectsOverview').innerHTML = loginMessage;
+  
+  // Reset to dashboard view
+  if (typeof switchView === 'function') {
+    switchView('dashboard');
+  }
+  
   window.CURRENT_USER_EMAIL = null;
   window.DYNAMIC_PROJECTS = [];
   
