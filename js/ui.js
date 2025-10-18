@@ -10,71 +10,163 @@ function filterProjectsByAccess(projects, userEmail) {
   return projects || [];
 }
 
-// **FIXED: Render projects overview grid with DYNAMIC category counting + PROGRESSIVE LOADING**
+// **GAMMA-INSPIRED: Render projects with glassmorphism & circular progress**
 function renderProjectsOverview(projects) {
   const root = document.getElementById('projectsOverview');
   
   if (!projects || !projects.length) {
-    root.innerHTML = '<div class="text-gray-500 text-center py-8">Geen projecten gevonden of geen toegang.</div>';
+    root.innerHTML = `
+      <div class="col-span-full empty-state-modern fade-in">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">Geen projecten gevonden</h3>
+        <p class="empty-state-description">
+          Log in met je Google account om projecten uit Drive te laden, 
+          of voeg handmatig projecten toe in de configuratie.
+        </p>
+      </div>
+    `;
     return;
   }
 
-  console.log('Rendering projects overview with', projects.length, 'projects');
+  console.log('🎨 Rendering', projects.length, 'projects with Gamma-style UI');
 
-  root.innerHTML = projects.map(p => {
+  root.innerHTML = projects.map((p, index) => {
     const categories = p.dynamicCategories || [];
     const categoryCount = categories.length;
     const isLoading = !p._categoriesLoaded;
-    const pct = categoryCount > 0 ? 100 : 0;
+    const progress = categoryCount > 0 ? 100 : (isLoading ? 50 : 0);
+    
+    // Calculate circle progress (circumference)
+    const radius = 34;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (progress / 100) * circumference;
 
-    let quick = '';
+    // Format date
+    const lastModified = new Date(p.modifiedTime).toLocaleDateString('nl-BE', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    // Quick action chips (top 3 categories)
+    let quickChipsHTML = '';
     if (isLoading) {
-      quick = '<div class="text-xs text-gray-500 italic">⏳ Categorieën laden...</div>';
+      quickChipsHTML = `
+        <div class="skeleton skeleton-line" style="width: 100px; height: 32px;"></div>
+        <div class="skeleton skeleton-line" style="width: 120px; height: 32px;"></div>
+      `;
     } else if (categories.length > 0) {
-      quick = categories.slice(0, 4).map(cat => {
+      const topCategories = categories.slice(0, 3);
+      quickChipsHTML = topCategories.map(cat => {
         const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
-        return `<button class="px-2 py-1 text-xs rounded bg-white border hover:bg-gray-50 truncate max-w-full"
-          onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')">
-          ${cleanTitle}
-        </button>`;
-      }).join(' ');
+        return `
+          <button class="action-chip" 
+                  onclick="showCategoryFiles('${cat._folderId}', '${cat.title.replace(/'/g, "\\'")}', '${cat.icon}')"
+                  title="${cat.title}">
+            <span class="action-chip-number">${cat._categoryNumber || '•'}</span>
+            <span class="truncate">${cleanTitle}</span>
+          </button>
+        `;
+      }).join('');
+      
+      if (categories.length > 3) {
+        quickChipsHTML += `
+          <div class="action-chip action-chip-more">
+            +${categories.length - 3} meer
+          </div>
+        `;
+      }
+    } else {
+      quickChipsHTML = `
+        <div class="text-xs text-gray-500 italic py-2">
+          📂 Nog geen categorieën gevonden
+        </div>
+      `;
     }
 
     return `
-      <div class="bg-white rounded-xl shadow p-5 border hover:shadow-lg transition-shadow ${isLoading ? 'opacity-75' : ''}">
-        <div class="flex flex-col gap-3">
-          <!-- Project Title & Button Row -->
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex-1 min-w-0">
-              <div class="text-lg font-bold truncate" title="${p.name}">${p.name}</div>
-              <div class="text-xs text-gray-500">Laatst gewijzigd: ${new Date(p.modifiedTime).toLocaleDateString('nl-BE')}</div>
-            </div>
-            <button class="flex-shrink-0 text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
-              onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')">
-              📂 Open hoofdmap
-            </button>
-          </div>
-
-          <!-- Category Count & Progress -->
-          <div>
-            <div class="text-sm mb-2 font-medium">
-              ${isLoading 
-                ? '<span class="text-gray-500">⏳ Laden...</span>' 
-                : `${categoryCount} categorie${categoryCount !== 1 ? 'ën' : ''}`
-              }
-            </div>
-            <div class="w-full h-2 bg-gray-200 rounded">
-              <div class="h-2 ${isLoading ? 'bg-gray-400 animate-pulse' : 'bg-green-500'} rounded transition-all" style="width:${isLoading ? '50' : pct}%"></div>
+      <div class="project-card-gamma ${isLoading ? 'loading' : ''} fade-in" 
+           style="animation-delay: ${index * 0.1}s">
+        
+        <!-- Header Row -->
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xl font-bold text-gray-800 mb-1 truncate" title="${p.name}">
+              ${p.name}
+            </h3>
+            <div class="flex items-center gap-2 text-xs text-gray-500">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span>${lastModified}</span>
             </div>
           </div>
+          
+          <button class="icon-btn-modern" 
+                  onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')"
+                  title="Open in Google Drive">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+          </button>
+        </div>
 
-          <!-- Quick Links -->
-          ${isLoading 
-            ? '<div class="text-xs text-gray-500">Categorieën worden geladen...</div>'
-            : categories.length > 0 
-              ? `<div class="flex flex-wrap gap-2">${quick}</div>`
-              : `<div class="text-xs text-amber-600 bg-amber-50 p-2 rounded">⚠️ Geen categorieën gevonden</div>`
-          }
+        <!-- Progress Circle + Stats -->
+        <div class="flex items-center gap-5 mb-6">
+          <!-- Circular Progress -->
+          <div class="progress-container">
+            <svg class="progress-ring" viewBox="0 0 80 80">
+              <defs>
+                <linearGradient id="progressGradient-${p.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#1e3a52;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#b8975a;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              
+              <!-- Background circle -->
+              <circle class="progress-ring-circle progress-ring-bg"
+                      cx="40" cy="40" r="${radius}">
+              </circle>
+              
+              <!-- Progress circle -->
+              <circle class="progress-ring-circle progress-ring-fill ${isLoading ? 'loading' : ''}"
+                      cx="40" cy="40" r="${radius}"
+                      stroke="url(#progressGradient-${p.id})"
+                      stroke-dasharray="${circumference}"
+                      stroke-dashoffset="${offset}">
+              </circle>
+            </svg>
+            
+            <div class="progress-label">
+              ${isLoading ? '⏳' : categoryCount}
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="flex-1">
+            <div class="text-sm font-semibold text-gray-700 mb-1">
+              ${isLoading ? 'Laden...' : `${categoryCount} ${categoryCount === 1 ? 'Categorie' : 'Categorieën'}`}
+            </div>
+            <div class="progress-sublabel">
+              ${isLoading ? 'Categories worden geladen' : 'Beschikbaar'}
+            </div>
+            
+            ${!isLoading && categoryCount > 0 ? `
+              <div class="flex gap-2 mt-3">
+                <div class="stat-badge">
+                  <span class="stat-badge-icon">📁</span>
+                  <span>${categoryCount}</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Quick Action Chips -->
+        <div class="chip-container">
+          ${quickChipsHTML}
         </div>
       </div>
     `;
