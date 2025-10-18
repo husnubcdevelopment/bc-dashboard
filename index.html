@@ -226,15 +226,21 @@
     </div>
   </div>
 
-  <!-- Scripts - v13 -->
-  <script src="js/config.js?v=13"></script>
-  <script src="js/cache-manager.js?v=13"></script>
-  <script src="js/auto-refresh.js?v=13"></script>
-  <script src="js/error-recovery.js?v=13"></script>
-  <script src="js/auth.js?v=13"></script>
-  <script src="js/drive-api.js?v=13"></script>
-  <script src="js/ui.js?v=13"></script>
-  <script src="js/main.js?v=13"></script>
+  <!-- Scripts - v14 (FIXED ORDER!) -->
+  <script src="js/config.js?v=14"></script>
+  <script src="js/cache-manager.js?v=14"></script>
+  <script src="js/auto-refresh.js?v=14"></script>
+  <script src="js/error-recovery.js?v=14"></script>
+  
+  <!-- ⚠️ UI MUST LOAD BEFORE AUTH AND DRIVE-API -->
+  <script src="js/ui.js?v=14"></script>
+  
+  <!-- These depend on ui.js functions -->
+  <script src="js/auth.js?v=14"></script>
+  <script src="js/drive-api.js?v=14"></script>
+  
+  <!-- Main loads last -->
+  <script src="js/main.js?v=14"></script>
 
 </body>
 </html>
