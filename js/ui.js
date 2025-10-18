@@ -588,48 +588,37 @@ async function showFilesModal(category, mainFolderId) {
 }
 
 // **WORKING VERSION: Refresh files with subfolder display (SHOWS ALL SUBFOLDERS)**
-// **DEBUG VERSION: Refresh files with extensive logging**
+// **SIMPLE LIST VIEW: Refresh files**
 async function refreshFiles(folderId) {
-  console.log('🔄 refreshFiles START:', folderId);
+  console.log('🔄 refreshFiles:', folderId);
   
   const box = document.getElementById('filesContainer');
-  if (!box) {
-    console.error('❌ filesContainer NOT FOUND!');
-    return;
-  }
+  if (!box) return;
 
-  console.log('✅ filesContainer found');
-  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div><p class="ml-3">Loading...</p></div>';
+  // Show loading
+  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
   
   try {
-    console.log('📡 Calling getFolderStructure...');
+    // Get structure
     const structure = await getFolderStructure(folderId);
-    
-    console.log('📊 Structure received:', {
-      files: structure.files?.length || 0,
-      subfolders: structure.subfolders?.length || 0
-    });
-    
     const allFiles = structure.files || [];
     const subfolders = structure.subfolders || [];
 
     const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + (sf.files?.length || 0), 0);
     const totalFolders = subfolders.length;
 
-    console.log(`📈 Totals: ${totalFiles} files, ${totalFolders} folders`);
-
-    // Empty check
+    // Empty state
     if (totalFiles === 0 && totalFolders === 0) {
-      console.log('📭 No files or folders found');
       box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
       return;
     }
 
-    console.log('🎨 Starting HTML build...');
+    // Build HTML
     let html = `
       <div class="mb-3 flex justify-between items-center">
         <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
-        <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+        <button onclick="forceRefreshFiles('${folderId}')" 
+                class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
           🔄 Vernieuwen
         </button>
       </div>
@@ -637,44 +626,46 @@ async function refreshFiles(folderId) {
 
     // Main folder files
     if (allFiles.length > 0) {
-      console.log(`📄 Rendering ${allFiles.length} main files...`);
-      html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
+      html += '<div class="mb-4">';
+      html += '<h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4>';
+      html += '<div class="space-y-2">';
       
-      allFiles.forEach((f, idx) => {
-        console.log(`  - File ${idx + 1}/${allFiles.length}: ${f.name}`);
+      allFiles.forEach(f => {
         const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+        const date = new Date(f.modifiedTime).toLocaleString('nl-BE');
+        const size = formatFileSize(f.size);
+        
         html += `
-          <div class="flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer bg-white ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
+          <div class="flex items-center justify-between p-3 bg-white border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
                onclick="window.open('${f.webViewLink}','_blank')">
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <span class="text-2xl">📄</span>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-gray-800 truncate">${f.name}</p>
-                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')}</p>
+                <p class="font-medium text-gray-800 truncate">
+                  ${f.name}
+                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+                </p>
+                <p class="text-xs text-gray-500">${date} • ${size}</p>
               </div>
             </div>
-            <span class="text-blue-500">🔗</span>
+            <span class="text-blue-500 text-xl">🔗</span>
           </div>
         `;
       });
       
       html += '</div></div>';
-      console.log('✅ Main files HTML complete');
     }
 
     // Subfolders
-    console.log(`📁 Rendering ${subfolders.length} subfolders...`);
-    subfolders.forEach((subfolder, idx) => {
+    subfolders.forEach(subfolder => {
       const fileCount = subfolder.files?.length || 0;
       const isEmpty = fileCount === 0;
-      
-      console.log(`  - Subfolder ${idx + 1}/${subfolders.length}: ${subfolder.name} (${fileCount} files)`);
       
       html += `
         <div class="mb-4">
           <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            📁 ${subfolder.name} 
-            <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
+            📁 ${subfolder.name}
+            <span class="text-xs px-2 py-0.5 rounded-full ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'}">
               ${fileCount} bestand(en)
             </span>
           </h4>
@@ -689,21 +680,27 @@ async function refreshFiles(folderId) {
           </div>
         `;
       } else {
-        html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
+        html += '<div class="space-y-2 pl-4 border-l-2 border-blue-200">';
         
-        (subfolder.files || []).forEach(f => {
+        subfolder.files.forEach(f => {
           const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
+          const date = new Date(f.modifiedTime).toLocaleString('nl-BE');
+          const size = formatFileSize(f.size);
+          
           html += `
-            <div class="flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer bg-white ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
+            <div class="flex items-center justify-between p-3 bg-white border rounded-lg hover:shadow-md transition-shadow cursor-pointer ${isNew ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}"
                  onclick="window.open('${f.webViewLink}','_blank')">
               <div class="flex items-center gap-3 flex-1 min-w-0">
                 <span class="text-2xl">📄</span>
                 <div class="min-w-0 flex-1">
-                  <p class="font-medium text-gray-800 truncate">${f.name}</p>
-                  <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')}</p>
+                  <p class="font-medium text-gray-800 truncate">
+                    ${f.name}
+                    ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
+                  </p>
+                  <p class="text-xs text-gray-500">${date} • ${size}</p>
                 </div>
               </div>
-              <span class="text-blue-500">🔗</span>
+              <span class="text-blue-500 text-xl">🔗</span>
             </div>
           `;
         });
@@ -714,22 +711,18 @@ async function refreshFiles(folderId) {
       html += '</div>';
     });
 
-    console.log('✅ Subfolders HTML complete');
-
     html += '<p class="text-xs text-gray-400 text-center mt-4">⏱️ Auto-refresh elke 30 seconden</p>';
     
-    console.log('🎨 Setting innerHTML...');
+    // Set HTML
     box.innerHTML = html;
-    console.log('✅ HTML SET! Rendering complete!');
+    console.log('✅ Rendering complete');
     
   } catch (error) {
-    console.error('❌ ERROR in refreshFiles:', error);
-    console.error('Stack:', error.stack);
+    console.error('❌ Error:', error);
     box.innerHTML = `
       <div class="p-8 text-center text-red-600">
-        <p class="font-semibold mb-2">⚠️ Error bij laden</p>
+        <p class="font-semibold mb-2">⚠️ Fout bij laden</p>
         <p class="text-sm">${error.message}</p>
-        <pre class="text-xs mt-2 text-left bg-gray-100 p-2 rounded overflow-auto">${error.stack}</pre>
       </div>
     `;
   }
@@ -840,4 +833,12 @@ function showTempNotification(message) {
     notif.style.transform = 'translateX(100%)';
     setTimeout(() => notif.remove(), 300);
   }, 2000);
+}
+
+// Helper: Format file size
+function formatFileSize(bytes) {
+  if (!bytes) return '-';
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
 }
