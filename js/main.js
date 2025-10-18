@@ -163,19 +163,18 @@ document.addEventListener('click', (e) => {
 function switchView(view) {
   currentView = view;
   
-  const dashboardSection = document.getElementById('dashboardSection');
-  const projectsSection = document.querySelector('#projectsOverview').closest('section');
   const btnDashboard = document.getElementById('viewDashboard');
   const btnList = document.getElementById('viewList');
   
   if (view === 'dashboard') {
-    dashboardSection.style.display = 'block';
-    projectsSection.style.display = 'none';
+    // Scroll to top (dashboard)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     btnDashboard?.classList.add('active');
     btnList?.classList.remove('active');
   } else {
-    dashboardSection.style.display = 'none';
-    projectsSection.style.display = 'block';
+    // Scroll to projects section
+    const projectsSection = document.querySelector('#projectsOverview').closest('section');
+    projectsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     btnDashboard?.classList.remove('active');
     btnList?.classList.add('active');
   }

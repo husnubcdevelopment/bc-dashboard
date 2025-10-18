@@ -516,28 +516,6 @@ function renderDashboardWidgets(projects) {
   `;
 }
 
-// **Helper: Select project from widget**
-function selectProjectFromWidget(projectId) {
-  const selector = document.getElementById('projectSelector');
-  
-  // Find option with matching project ID
-  const option = Array.from(selector.options).find(opt => 
-    opt.value === projectId || opt.value === `auto:${projectId}`
-  );
-  
-  if (option) {
-    selector.value = option.value;
-    // Trigger change event
-    selector.dispatchEvent(new Event('change'));
-    
-    // Scroll to categories
-    document.getElementById('categoriesGrid').scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    });
-  }
-}
-
 // **View Toggle Function**
 function switchView(view) {
   const dashboardSection = document.getElementById('dashboardSection');
@@ -697,17 +675,18 @@ async function refreshFiles(folderId) {
     const fileCount = subfolder.files.length;
     const isEmpty = fileCount === 0;
     
-    html += `
-      <div class="file-section ${isEmpty ? 'empty' : ''}">
-        <h4 class="file-section-title">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+   html += `
+    <div class="file-section ${isEmpty ? 'empty' : ''}">
+      <div class="file-section-header">
+        <div class="file-section-title">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
           </svg>
-          ${subfolder.name}
+          <span class="flex-1 min-w-0 truncate">${subfolder.name}</span>
           <span class="file-count-badge ${isEmpty ? 'empty' : ''}">${fileCount}</span>
-        </h4>
-    `;
+        </div>
+      </div>
     
     if (isEmpty) {
       html += `
