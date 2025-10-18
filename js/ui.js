@@ -570,14 +570,16 @@ async function showFilesModal(category, mainFolderId) {
     </div>
   `;
   
-  content.innerHTML = `
-    <div id="filesContainer" class="flex justify-center items-center p-12">
+content.innerHTML = `
+  <div id="filesContainer">
+    <div class="flex justify-center items-center p-12">
       <div class="flex flex-col items-center gap-3">
         <div class="loading"></div>
         <div class="text-sm text-gray-500">Bestanden laden...</div>
       </div>
     </div>
-  `;
+  </div>
+`;
   
   modal.classList.add('active');
 
