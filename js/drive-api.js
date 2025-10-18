@@ -329,7 +329,7 @@ async function getFolderStructure(folderId, useCache = true) {
   try {
     const filesResponse = await gapi.client.drive.files.list({
       q: `'${folderId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
-      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+      fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink)',
       orderBy: 'modifiedTime desc'
     });
     structure.files = filesResponse.result.files || [];
@@ -338,7 +338,7 @@ async function getFolderStructure(folderId, useCache = true) {
     for (const subfolder of subfolders) {
       const subFiles = await gapi.client.drive.files.list({
         q: `'${subfolder.id}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`,
-        fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink,iconLink)',
+        fields: 'files(id,name,mimeType,modifiedTime,size,webViewLink)',
         orderBy: 'modifiedTime desc'
       });
       

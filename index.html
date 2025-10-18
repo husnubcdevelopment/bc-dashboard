@@ -5,88 +5,182 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BC Development Project Dashboard</title>
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
   <!-- INITIALIZATION - MOET VOOR GOOGLE API SCRIPTS -->
- <script>
-  // Global state
-  window.gapiInited = false;
-  window.gisInited = false;
-  window.tokenClient = null;
-  window.CURRENT_USER_EMAIL = null;
-  window.DYNAMIC_PROJECTS = [];
-  window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
-  window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-  
-  let apisReady = false;
-  
-  // GAPI loader
-  window.gapiLoaded = function() {
-    gapi.load('client', function() {
-      gapi.client.init({
-        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
-      }).then(function() {
-        window.gapiInited = true;
-        checkReady();
+  <script>
+    // Global state
+    window.gapiInited = false;
+    window.gisInited = false;
+    window.tokenClient = null;
+    window.CURRENT_USER_EMAIL = null;
+    window.DYNAMIC_PROJECTS = [];
+    window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+    window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+    
+    let apisReady = false;
+    
+    // GAPI loader
+    window.gapiLoaded = function() {
+      gapi.load('client', function() {
+        gapi.client.init({
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+        }).then(function() {
+          window.gapiInited = true;
+          checkReady();
+        });
       });
+    };
+    
+    // GIS loader
+    window.gisLoaded = function() {
+      window.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: window.CLIENT_ID,
+        scope: window.SCOPES,
+        callback: '',
+      });
+      window.gisInited = true;
+      checkReady();
+    };
+    
+    // Check if both ready
+    function checkReady() {
+      if (window.gapiInited && window.gisInited) {
+        apisReady = true;
+        tryShowButton();
+      }
+    }
+    
+    // Try to show button (will retry until DOM ready)
+    function tryShowButton() {
+      const banner = document.getElementById('authBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        const help = banner.querySelector('p');
+        if (help) help.remove();
+      } else {
+        setTimeout(tryShowButton, 50);
+      }
+    }
+    
+    // When DOM is ready, show button if APIs already loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      if (apisReady) {
+        tryShowButton();
+      }
     });
-  };
-  
-  // GIS loader
-  window.gisLoaded = function() {
-    window.tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: window.CLIENT_ID,
-      scope: window.SCOPES,
-      callback: '',
+    
+    // Final fallback - force show after 3 seconds
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        tryShowButton();
+      }, 3000);
     });
-    window.gisInited = true;
-    checkReady();
-  };
-  
-  // Check if both ready
-  function checkReady() {
-    if (window.gapiInited && window.gisInited) {
-      apisReady = true;
-      tryShowButton();
-    }
-  }
-  
-  // Try to show button (will retry until DOM ready)
-  function tryShowButton() {
-    const banner = document.getElementById('authBanner');
-    if (banner) {
-      banner.classList.remove('hidden');
-      const help = banner.querySelector('p');
-      if (help) help.remove();
-    } else {
-      // Retry after 50ms if element not found
-      setTimeout(tryShowButton, 50);
-    }
-  }
-  
-  // When DOM is ready, show button if APIs already loaded
-  document.addEventListener('DOMContentLoaded', function() {
-    if (apisReady) {
-      tryShowButton();
-    }
-  });
-  
-  // Final fallback - force show after 3 seconds
-  window.addEventListener('load', function() {
-    setTimeout(function() {
-      tryShowButton();
-    }, 3000);
-  });
-</script>
+  </script>
   
   <!-- Google APIs -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
   
-<!-- Custom Styles -->
-<link rel="stylesheet" href="css/design-tokens.css?v=14">
-<link rel="stylesheet" href="css/styles.css?v=14">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=15">
+  <link rel="stylesheet" href="css/styles.css?v=15">
+  
+  <!-- 🔥 CRITICAL FIX: Force emoji icons, block Drive thumbnails -->
+  <style>
+    /* Force emoji icons - no images allowed! */
+    .file-icon-large {
+      font-size: 3rem !important;
+      margin-bottom: 0.75rem !important;
+      transition: transform 0.3s ease !important;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* Hide any Drive thumbnail images that might sneak in */
+    .file-icon-large img {
+      display: none !important;
+    }
+
+    /* Ensure file cards render correctly */
+    .file-card-modern {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      background: white !important;
+      border: 2px solid #e5e7eb !important;
+      border-radius: 12px !important;
+      padding: 1.5rem 1rem !important;
+      cursor: pointer !important;
+      transition: all 0.25s ease !important;
+    }
+
+    .file-card-modern:hover {
+      transform: translateY(-4px) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+      border-color: #b8975a !important;
+    }
+
+    /* File grid layout */
+    .file-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+      gap: 1rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Modal backdrop */
+    .modal {
+      backdrop-filter: blur(12px) !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+    }
+
+    /* Stats bar */
+    .modal-stats-bar {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 0.75rem !important;
+      padding: 1rem !important;
+      background: #f9fafb !important;
+      border-radius: 12px !important;
+      margin-bottom: 1.5rem !important;
+    }
+
+    .stat-pill {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0.5rem 0.875rem !important;
+      background: white !important;
+      border: 1px solid #e5e7eb !important;
+      border-radius: 20px !important;
+      font-size: 0.875rem !important;
+    }
+
+    /* File section headers */
+    .file-section-title {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0.75rem 1rem !important;
+      background: #f3f4f6 !important;
+      border-radius: 10px !important;
+      border: 1px solid #e5e7eb !important;
+      font-size: 0.9375rem !important;
+      font-weight: 600 !important;
+      margin-bottom: 1rem !important;
+    }
+
+    /* Block Google Drive's native UI */
+    .modal iframe {
+      display: none !important;
+    }
+  </style>
+
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
 
