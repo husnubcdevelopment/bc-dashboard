@@ -220,21 +220,33 @@ function showProjectInfo(project) {
   `;
 }
 
-// **FIXED: Render categories grid with SINGLE PREMIUM COLOR**
+// **GAMMA-INSPIRED: Render categories with modern card design**
 function renderCategories(categories, project) {
   const grid = document.getElementById('categoriesGrid');
   grid.innerHTML = '';
 
   if (!project) {
-    grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">👆 Selecteer een project</div>';
+    grid.innerHTML = `
+      <div class="col-span-full empty-state-modern fade-in">
+        <div class="empty-state-icon">👆</div>
+        <h3 class="empty-state-title">Selecteer een project</h3>
+        <p class="empty-state-description">
+          Kies een project uit de lijst hierboven om de categorieën te bekijken.
+        </p>
+      </div>
+    `;
     return;
   }
 
   if (!categories || categories.length === 0) {
     grid.innerHTML = `
-      <div class="col-span-full text-center py-10">
-        <div class="text-gray-400 mb-2">📭 Geen categorieën gevonden in dit project</div>
-        <div class="text-sm text-gray-500">Maak mappen aan in Drive met nummering (bijv. "1_Prospectie", "2_Overeenkomsten")</div>
+      <div class="col-span-full empty-state-modern fade-in">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">Geen categorieën gevonden</h3>
+        <p class="empty-state-description">
+          Maak genummerde mappen aan in Google Drive (bijv. "1_Prospectie", "2_Overeenkomsten") 
+          om automatisch categorieën te genereren.
+        </p>
       </div>
     `;
     return;
@@ -242,47 +254,118 @@ function renderCategories(categories, project) {
 
   const isAuth = gapi.client.getToken() !== null;
 
-  categories.forEach(cat => {
+  categories.forEach((cat, index) => {
     const card = document.createElement('div');
     const folderId = cat._folderId;
     const categoryNumber = cat._categoryNumber || '?';
-    
-    card.className = 'category-card';
-    
-    // Clean title (remove number prefix)
     const cleanTitle = cat.title.replace(/^\d{1,2}[\s._-]/, '');
-
+    
+    // Count files in subfolders
+    const totalFiles = cat.subfolders 
+      ? cat.subfolders.reduce((sum, sf) => sum + (sf.hasFiles ? 1 : 0), 0)
+      : 0;
+    const hasFiles = totalFiles > 0;
+    
+    card.className = `category-card-gamma ${hasFiles ? 'has-files' : 'empty'} fade-in`;
+    card.style.animationDelay = `${index * 0.05}s`;
+    
     if (folderId && isAuth) {
       card.onclick = () => showFilesModal(cat, folderId);
+      card.style.cursor = 'pointer';
     }
 
-    // 🆕 RENDER SUBFOLDERS MET FILE COUNT INDICATOR
-    let itemsHTML = '';
+    // Render subfolders with status indicators
+    let subfoldersHTML = '';
     if (cat.subfolders && cat.subfolders.length > 0) {
-      itemsHTML = `
-        <div class="category-items">
-          <ul>
-            ${cat.subfolders.map(subfolder => {
-              const itemClass = subfolder.hasFiles 
-                ? 'category-subfolder-item has-files' 
-                : 'category-subfolder-item empty';
-              
-              return `<li class="${itemClass}">${subfolder.name}</li>`;
-            }).join('')}
-          </ul>
+      subfoldersHTML = `
+        <div class="category-subfolders">
+          ${cat.subfolders.slice(0, 4).map(subfolder => {
+            const statusClass = subfolder.hasFiles ? 'has-files' : 'empty';
+            const icon = subfolder.hasFiles ? '📄' : '📂';
+            
+            return `
+              <div class="subfolder-item ${statusClass}">
+                <span class="subfolder-icon">${icon}</span>
+                <span class="subfolder-name">${subfolder.name}</span>
+                ${subfolder.hasFiles ? '<span class="subfolder-badge">●</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+          
+          ${cat.subfolders.length > 4 ? `
+            <div class="subfolder-item more">
+              <span class="subfolder-icon">⋯</span>
+              <span class="subfolder-name">+${cat.subfolders.length - 4} meer</span>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      subfoldersHTML = `
+        <div class="category-subfolders empty-state">
+          <div class="text-xs text-gray-400 italic">Nog geen submappen</div>
         </div>
       `;
     }
 
-    const badge = folderId && isAuth
-      ? '<span class="category-badge">📁 Bekijk bestanden</span>'
-      : '<span class="category-badge text-red-600">⚠️ Login vereist</span>';
-
     card.innerHTML = `
-      <div class="category-icon">${categoryNumber}</div>
-      <h3 class="category-title">${cleanTitle}</h3>
-      ${badge}
-      ${itemsHTML}
+      <!-- Status Indicator (top-right corner) -->
+      ${hasFiles ? '<div class="category-status-dot active" title="Bevat bestanden"></div>' : ''}
+      
+      <!-- Category Number Badge -->
+      <div class="category-number-badge ${hasFiles ? 'active' : ''}">
+        ${categoryNumber}
+      </div>
+      
+      <!-- Category Header -->
+      <div class="category-header">
+        <h3 class="category-title-modern">${cleanTitle}</h3>
+        
+        ${folderId && isAuth ? `
+          <div class="category-meta">
+            <span class="category-meta-item">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+              </svg>
+              ${cat.subfolders?.length || 0} ${cat.subfolders?.length === 1 ? 'map' : 'mappen'}
+            </span>
+            ${hasFiles ? `
+              <span class="category-meta-item highlight">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                ${totalFiles} ${totalFiles === 1 ? 'bestand' : 'bestanden'}
+              </span>
+            ` : ''}
+          </div>
+        ` : `
+          <div class="category-meta">
+            <span class="category-meta-item warning">
+              🔒 Login vereist
+            </span>
+          </div>
+        `}
+      </div>
+      
+      <!-- Subfolders List -->
+      ${subfoldersHTML}
+      
+      <!-- Action Footer -->
+      ${folderId && isAuth ? `
+        <div class="category-footer">
+          <button class="category-action-btn" onclick="event.stopPropagation(); showFilesModal(${JSON.stringify(cat).replace(/"/g, '&quot;')}, '${folderId}')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+            <span>Bekijk bestanden</span>
+          </button>
+        </div>
+      ` : ''}
     `;
 
     grid.appendChild(card);
@@ -299,14 +382,39 @@ function showCategoryFiles(folderId, title, icon) {
   showFilesModal(category, folderId);
 }
 
-// **Show files modal with subfolder support**
+// **GAMMA-INSPIRED: Show files modal with modern design**
 async function showFilesModal(category, mainFolderId) {
   const modal = document.getElementById('fileModal');
   const title = document.getElementById('modalTitle');
   const content = document.getElementById('modalContent');
 
-  title.innerHTML = `${category.title} <span class="text-sm font-normal text-gray-500 ml-2"><span class="inline-flex items-center gap-1"><span class="pulse-dot"></span>Live</span></span>`;
-  content.innerHTML = '<div id="filesContainer"><div class="flex justify-center p-8"><div class="loading"></div></div></div>';
+  // Clean title
+  const cleanTitle = category.title.replace(/^\d{1,2}[\s._-]/, '');
+
+  title.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="modal-category-badge">${category._categoryNumber || '📁'}</div>
+      <div>
+        <div class="text-xl font-bold">${cleanTitle}</div>
+        <div class="text-sm font-normal text-gray-500 mt-0.5">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="pulse-dot"></span>
+            <span>Live synchronisatie</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  content.innerHTML = `
+    <div id="filesContainer" class="flex justify-center items-center p-12">
+      <div class="flex flex-col items-center gap-3">
+        <div class="loading"></div>
+        <div class="text-sm text-gray-500">Bestanden laden...</div>
+      </div>
+    </div>
+  `;
+  
   modal.classList.add('active');
 
   if (refreshInterval) clearInterval(refreshInterval);
@@ -315,14 +423,20 @@ async function showFilesModal(category, mainFolderId) {
   await refreshFiles(mainFolderId);
 }
 
-// Refresh files with subfolder display (SHOWS ALL SUBFOLDERS)
+// **GAMMA-INSPIRED: Refresh files with modern card layout**
 async function refreshFiles(folderId) {
   const box = document.getElementById('filesContainer');
   if (!box) return;
 
-  box.innerHTML = '<div class="flex justify-center p-8"><div class="loading"></div></div>';
+  box.innerHTML = `
+    <div class="flex justify-center items-center p-12">
+      <div class="flex flex-col items-center gap-3">
+        <div class="loading"></div>
+        <div class="text-sm text-gray-500">Bestanden laden...</div>
+      </div>
+    </div>
+  `;
   
-  // Get folder structure with subfolders
   const structure = await getFolderStructure(folderId);
   const allFiles = structure.files;
   const subfolders = structure.subfolders;
@@ -330,104 +444,177 @@ async function refreshFiles(folderId) {
   const totalFiles = allFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
   const totalFolders = subfolders.length;
 
-  // Show message if completely empty (no files AND no subfolders)
   if (totalFiles === 0 && totalFolders === 0) {
-    box.innerHTML = '<p class="text-gray-500 text-center p-8">📭 Geen bestanden of submappen gevonden</p>';
+    box.innerHTML = `
+      <div class="empty-state-modern">
+        <div class="empty-state-icon">📭</div>
+        <h3 class="empty-state-title">Geen bestanden gevonden</h3>
+        <p class="empty-state-description">
+          Deze categorie bevat nog geen bestanden of submappen. 
+          Upload bestanden in Google Drive om ze hier te zien.
+        </p>
+      </div>
+    `;
     return;
   }
 
   let html = `
-    <div class="mb-3 flex justify-between items-center">
-      <p class="text-sm text-gray-600">📊 ${totalFiles} bestand(en) • ${totalFolders} submap(pen)</p>
-      <button onclick="forceRefreshFiles('${folderId}')" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-        🔄 Vernieuwen
+    <!-- Modal Header Stats -->
+    <div class="modal-stats-bar">
+      <div class="stat-pill">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <span>${totalFiles} ${totalFiles === 1 ? 'bestand' : 'bestanden'}</span>
+      </div>
+      
+      <div class="stat-pill">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+        </svg>
+        <span>${totalFolders} ${totalFolders === 1 ? 'map' : 'mappen'}</span>
+      </div>
+      
+      <button onclick="forceRefreshFiles('${folderId}')" class="refresh-btn">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        <span>Vernieuwen</span>
       </button>
     </div>
   `;
 
-  // Display main folder files
+  // Main folder files
   if (allFiles.length > 0) {
-    html += '<div class="mb-4"><h4 class="font-semibold text-gray-700 mb-2">📄 Bestanden in hoofdmap</h4><div class="space-y-2">';
-    allFiles.forEach(f => {
-      const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
-      html += `
-        <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
-             onclick="window.open('${f.webViewLink}','_blank')">
-          <div class="flex items-center gap-3 flex-1">
-            <span class="text-2xl">📄</span>
-            <div>
-              <p class="font-medium text-gray-800">
-                ${f.name}
-                ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-              </p>
-              <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
-            </div>
-          </div>
-          <span class="text-blue-500">🔗</span>
+    html += `
+      <div class="file-section">
+        <h4 class="file-section-title">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+          </svg>
+          Hoofdmap
+          <span class="file-count-badge">${allFiles.length}</span>
+        </h4>
+        <div class="file-grid">
+          ${allFiles.map(f => renderFileCard(f)).join('')}
         </div>
-      `;
-    });
-    html += '</div></div>';
+      </div>
+    `;
   }
 
-  // ✨ Display ALL subfolders (even if empty)
+  // Subfolders
   subfolders.forEach(subfolder => {
     const fileCount = subfolder.files.length;
     const isEmpty = fileCount === 0;
     
     html += `
-      <div class="mb-4">
-        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          📁 ${subfolder.name} 
-          <span class="text-xs ${isEmpty ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-800'} px-2 py-0.5 rounded-full">
-            ${fileCount} bestand(en)
-          </span>
+      <div class="file-section ${isEmpty ? 'empty' : ''}">
+        <h4 class="file-section-title">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+          </svg>
+          ${subfolder.name}
+          <span class="file-count-badge ${isEmpty ? 'empty' : ''}">${fileCount}</span>
         </h4>
     `;
     
     if (isEmpty) {
-      // Show empty state for subfolders without files
       html += `
-        <div class="pl-4 border-l-2 border-gray-200">
-          <div class="p-3 border border-dashed rounded-lg text-center text-gray-400 text-sm">
-            📭 Nog geen bestanden in deze map
-          </div>
+        <div class="empty-folder-state">
+          <div class="text-gray-400 text-sm">📂 Nog geen bestanden</div>
         </div>
       `;
     } else {
-      // Show files in subfolder
-      html += '<div class="space-y-2 pl-4 border-l-2 border-gray-200">';
-      
-      subfolder.files.forEach(f => {
-        const isNew = (Date.now() - new Date(f.modifiedTime)) < 3600000;
-        html += `
-          <div class="file-item flex items-center justify-between p-3 border rounded-lg hover:shadow cursor-pointer ${isNew ? 'bg-yellow-50 border-yellow-300' : ''}"
-               onclick="window.open('${f.webViewLink}','_blank')">
-            <div class="flex items-center gap-3 flex-1">
-              <span class="text-2xl">📄</span>
-              <div>
-                <p class="font-medium text-gray-800">
-                  ${f.name}
-                  ${isNew ? '<span class="text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full ml-2">✨ Nieuw</span>' : ''}
-                </p>
-                <p class="text-xs text-gray-500">${new Date(f.modifiedTime).toLocaleString('nl-BE')} • ${formatFileSize(f.size)}</p>
-              </div>
-            </div>
-            <span class="text-blue-500">🔗</span>
-          </div>
-        `;
-      });
-      
-      html += '</div>';
+      html += `
+        <div class="file-grid">
+          ${subfolder.files.map(f => renderFileCard(f)).join('')}
+        </div>
+      `;
     }
     
     html += '</div>';
   });
 
-  html += '<p class="text-xs text-gray-400 text-center mt-4">Auto-refresh 15s • Klik 🔄 voor directe update</p>';
+  html += `
+    <div class="modal-footer-info">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span>Automatisch ververst elke 30 seconden</span>
+    </div>
+  `;
+
   box.innerHTML = html;
 }
 
+// **Helper: Render individual file card**
+function renderFileCard(file) {
+  const isNew = (Date.now() - new Date(file.modifiedTime)) < 3600000; // 1 hour
+  const fileIcon = getFileIcon(file.mimeType);
+  const fileDate = new Date(file.modifiedTime).toLocaleDateString('nl-BE', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  return `
+    <div class="file-card-modern ${isNew ? 'new' : ''}" 
+         onclick="window.open('${file.webViewLink}','_blank')"
+         title="${file.name}">
+      ${isNew ? '<div class="new-badge">✨ Nieuw</div>' : ''}
+      
+      <div class="file-icon-large">${fileIcon}</div>
+      
+      <div class="file-info">
+        <div class="file-name">${file.name}</div>
+        <div class="file-meta">
+          <span>${fileDate}</span>
+          <span>•</span>
+          <span>${formatFileSize(file.size)}</span>
+        </div>
+      </div>
+      
+      <div class="file-action-overlay">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+        </svg>
+      </div>
+    </div>
+  `;
+}
+
+// **Helper: Get file icon based on mime type**
+function getFileIcon(mimeType) {
+  if (!mimeType) return '📄';
+  
+  const iconMap = {
+    'application/pdf': '📕',
+    'application/msword': '📘',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📘',
+    'application/vnd.ms-excel': '📊',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '📊',
+    'application/vnd.ms-powerpoint': '📙',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📙',
+    'image/': '🖼️',
+    'video/': '🎬',
+    'audio/': '🎵',
+    'application/zip': '📦',
+    'application/x-rar': '📦'
+  };
+  
+  for (const [key, icon] of Object.entries(iconMap)) {
+    if (mimeType.includes(key)) return icon;
+  }
+  
+  return '📄';
+}
 // Close modal
 function closeModal() {
   document.getElementById('fileModal').classList.remove('active');
