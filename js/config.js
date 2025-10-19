@@ -1,91 +1,84 @@
-// BC Development Dashboard - Configuration
+// BC Development Dashboard - Configuration (DYNAMIC ACCESS)
 
 // Google OAuth Configuration
 window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
 window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Root folder ID - Your main "BC Development/Projects" folder (for BC Immo users)
-const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
+// Root folder ID
+const PROJECTS_ROOT_FOLDER_ID = '10_i_SihsiYTZA7idIjl2q19Ted7UK3BD';
+const OWNER_EMAIL = 'info@bcimmo.be';
 
-// Project Permissions Configuration - WITH DIRECT FOLDER IDS
-const PROJECT_PERMISSIONS = {
-  'gtahusnu@gmail.com': {
-    directAccess: true,
-    allowedProjects: [
-      {
-        name: '2025_DeVenne',
-        folderId: '1VsxWc_xVts9p7Upo10ZWLyUL4wfBMOzw'
-      }
-    ],
-    accessLevel: 'read'
-  }
+// Project naming convention filters
+const PROJECT_NAME_FILTERS = {
+  enabled: true,
+  patterns: [
+    /^\d{4}_/,
+    /_[A-Z]/,
+  ]
 };
 
-// Domain whitelist - users from these domains get full access via parent folder
-const ALLOWED_DOMAINS = ['bcimmo.be'];
+// ========================================
+// 🎨 PREMIUM SINGLE COLOR SYSTEM
+// Alle mappen krijgen DEZELFDE premium kleur
+// Clean, elegant, professional - GEEN carnaval
+// ========================================
 
-// DYNAMIC CATEGORIES: Auto-discover from Drive + fallback definitions
-// De volgorde en standaard info voor bekende categorieën
-const CATEGORY_TEMPLATES = {
-  1: { icon: "📊", colorClass: "bg-purple-100 border-purple-400 text-purple-900 hover:bg-purple-200" },
-  2: { icon: "✅", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  3: { icon: "👥", colorClass: "bg-orange-100 border-orange-400 text-orange-900 hover:bg-orange-200" },
-  4: { icon: "💰", colorClass: "bg-green-100 border-green-400 text-green-900 hover:bg-green-200" },
-  5: { icon: "🗺️", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
-  6: { icon: "🏢", colorClass: "bg-yellow-100 border-yellow-400 text-yellow-900 hover:bg-yellow-200" },
-  7: { icon: "📄", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  8: { icon: "⚖️", colorClass: "bg-blue-100 border-blue-400 text-blue-900 hover:bg-blue-200" },
-  9: { icon: "💡", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
-  10: { icon: "📈", colorClass: "bg-indigo-100 border-indigo-400 text-indigo-900 hover:bg-indigo-200" },
-  11: { icon: "📋", colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200" },
-  12: { icon: "📤", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
-  13: { icon: "✔️", colorClass: "bg-red-100 border-red-400 text-red-900 hover:bg-red-200" },
-  14: { icon: "📐", colorClass: "bg-teal-100 border-teal-400 text-teal-900 hover:bg-teal-200" },
-  15: { icon: "🔧", colorClass: "bg-pink-100 border-pink-400 text-pink-900 hover:bg-pink-200" },
-  // Voeg meer nummers toe als je wilt...
-  // Voor onbekende nummers wordt een default gebruikt
+// Kies ÉÉN premium kleur voor alle categorieën
+// Geïnspireerd door je logo: Navy + Gold accent
+const PREMIUM_CATEGORY_STYLE = {
+  // Light mode
+  bg: '#f0f4f8',           // Zeer subtiel licht blauw/grijs
+  border: '#d9e2ec',       // Zachte border
+  text: '#334e68',         // Navy text (van je logo)
+  textHover: '#1e3a52',    // Donkerder navy on hover
+  
+  // Accent (voor hover states)
+  hoverBg: '#e6eef5',      // Iets donkerder bij hover
+  hoverBorder: '#b8975a',  // Gold accent van je logo
+  
+  // Dark mode versie
+  bgDark: '#1f2937',
+  borderDark: '#374151',
+  textDark: '#f0f6fc',
+  hoverBgDark: '#2d3748',
 };
 
-// Default voor nieuwe/onbekende categorieën
-const DEFAULT_CATEGORY_STYLE = {
-  icon: "📁",
-  colorClass: "bg-gray-100 border-gray-400 text-gray-900 hover:bg-gray-200"
-};
+// ========================================
+// 🔧 HELPER FUNCTIONS
+// ========================================
 
-// Categories Configuration - Now dynamically populated!
-const CONFIG = {
-  projects: [],
-  categories: [] // Wordt dynamisch gevuld vanuit Drive!
-};
-
-// Helper: Parse category number from folder name
 function parseCategoryNumber(folderName) {
-  // Matches: "1_", "01_", "1.", "01.", "1-", "01-", "1 "
   const match = folderName.match(/^(\d{1,2})[\s._-]/);
   return match ? parseInt(match[1]) : null;
 }
 
-// Helper: Create category ID from folder name
 function createCategoryId(folderName) {
-  // "1_Prospectie" -> "prospectie"
-  // "14_Goedgekeurde_Plannen" -> "goedgekeurde_plannen"
   return folderName
-    .replace(/^\d{1,2}[\s._-]/, '') // Remove number prefix
+    .replace(/^\d{1,2}[\s._-]/, '')
     .toLowerCase()
-    .replace(/[\s._-]+/g, '_'); // Replace spaces/dots/dashes with underscore
+    .replace(/[\s._-]+/g, '_');
 }
 
-// Helper: Get category style (icon & color)
+// 🎨 Get category style - ALLE MAPPEN DEZELFDE PREMIUM KLEUR
 function getCategoryStyle(categoryNumber) {
-  return CATEGORY_TEMPLATES[categoryNumber] || DEFAULT_CATEGORY_STYLE;
+  // Iedereen krijgt dezelfde style - clean & premium
+  return {
+    icon: "", // GEEN emoji
+    colorClass: "category-premium", // Single class voor alle categorieën
+    bg: PREMIUM_CATEGORY_STYLE.bg,
+    border: PREMIUM_CATEGORY_STYLE.border,
+    text: PREMIUM_CATEGORY_STYLE.text,
+    textHover: PREMIUM_CATEGORY_STYLE.textHover,
+    hoverBg: PREMIUM_CATEGORY_STYLE.hoverBg,
+    hoverBorder: PREMIUM_CATEGORY_STYLE.hoverBorder
+  };
 }
 
-// Helper: Build categories dynamically from folders
+// Build categories dynamically from folders
 function buildDynamicCategories(folders) {
   const categories = [];
   const seenNumbers = new Set();
   
-  // Sort folders by number
   const sortedFolders = folders.sort((a, b) => {
     const numA = parseCategoryNumber(a.name) || 999;
     const numB = parseCategoryNumber(b.name) || 999;
@@ -95,22 +88,26 @@ function buildDynamicCategories(folders) {
   for (const folder of sortedFolders) {
     const categoryNum = parseCategoryNumber(folder.name);
     
-    // Skip if we've already seen this number (shouldn't happen but just in case)
     if (categoryNum && seenNumbers.has(categoryNum)) continue;
     if (categoryNum) seenNumbers.add(categoryNum);
     
     const id = createCategoryId(folder.name);
     const style = getCategoryStyle(categoryNum);
     
-    // Extract subfolder names (will be populated later when project is selected)
     categories.push({
       id: id,
       title: folder.name,
       icon: style.icon,
-      colorClass: style.colorClass,
-      items: [], // Will be populated with subfolders dynamically
+      colorClass: style.colorClass, // "category-premium" voor IEDEREEN
+      bg: style.bg,
+      border: style.border,
+      text: style.text,
+      textHover: style.textHover,
+      hoverBg: style.hoverBg,
+      hoverBorder: style.hoverBorder,
+      items: [],
       subfolders: [],
-      _folderId: folder.id, // Store folder ID for later use
+      _folderId: folder.id,
       _categoryNumber: categoryNum
     });
   }
@@ -118,47 +115,12 @@ function buildDynamicCategories(folders) {
   return categories;
 }
 
-// Permission Helper Functions
-function checkUserAccess(userEmail, projectName) {
-  if (!userEmail) return false;
-  
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return true;
-  }
-  
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return false;
-  
-  if (userPerms.directAccess) {
-    return userPerms.allowedProjects.some(p => p.name === projectName);
-  }
-  
-  return userPerms.allowedProjects.includes(projectName);
+function matchesProjectNamingConvention(folderName) {
+  if (!PROJECT_NAME_FILTERS.enabled) return true;
+  return PROJECT_NAME_FILTERS.patterns.some(pattern => pattern.test(folderName));
 }
 
-function filterProjectsByAccess(projects, userEmail) {
-  if (!userEmail) return [];
-  
-  const domain = userEmail.split('@')[1];
-  if (ALLOWED_DOMAINS.includes(domain)) {
-    return projects;
-  }
-  
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  if (!userPerms) return [];
-  
-  if (userPerms.directAccess) {
-    const allowedNames = userPerms.allowedProjects.map(p => p.name);
-    return projects.filter(p => allowedNames.includes(p.name));
-  }
-  
-  return projects.filter(p => userPerms.allowedProjects.includes(p.name));
-}
-
-// Check if user has direct access (bypasses parent folder)
-function hasDirectAccess(userEmail) {
-  if (!userEmail) return false;
-  const userPerms = PROJECT_PERMISSIONS[userEmail];
-  return userPerms && userPerms.directAccess === true;
-}
+const CONFIG = {
+  projects: [],
+  categories: []
+};

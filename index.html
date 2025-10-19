@@ -1,93 +1,348 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BC Development Project Dashboard</title>
   
-  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https://apis.google.com https://accounts.google.com https://www.googleapis.com https://content.googleapis.com https://cdn.tailwindcss.com https://*.googleusercontent.com;
-                 script-src 'self' https://apis.google.com https://accounts.google.com https://cdn.tailwindcss.com 'unsafe-inline' 'unsafe-eval';
-                 style-src 'self' 'unsafe-inline';
-                 img-src 'self' https: data:;
-                 frame-src https://accounts.google.com https://content.googleapis.com;">
-
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="css/styles.css">
+  <!-- INITIALIZATION - MOET VOOR GOOGLE API SCRIPTS -->
+  <script>
+    // Global state
+    window.gapiInited = false;
+    window.gisInited = false;
+    window.tokenClient = null;
+    window.CURRENT_USER_EMAIL = null;
+    window.DYNAMIC_PROJECTS = [];
+    window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleusercontent.com';
+    window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+    
+    let apisReady = false;
+    
+    // GAPI loader
+    window.gapiLoaded = function() {
+      gapi.load('client', function() {
+        gapi.client.init({
+          discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+        }).then(function() {
+          window.gapiInited = true;
+          checkReady();
+        });
+      });
+    };
+    
+    // GIS loader
+    window.gisLoaded = function() {
+      window.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: window.CLIENT_ID,
+        scope: window.SCOPES,
+        callback: '',
+      });
+      window.gisInited = true;
+      checkReady();
+    };
+    
+    // Check if both ready
+    function checkReady() {
+      if (window.gapiInited && window.gisInited) {
+        apisReady = true;
+        tryShowButton();
+      }
+    }
+    
+    // Try to show button (will retry until DOM ready)
+    function tryShowButton() {
+      const banner = document.getElementById('authBanner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        const help = banner.querySelector('p');
+        if (help) help.remove();
+      } else {
+        setTimeout(tryShowButton, 50);
+      }
+    }
+    
+    // When DOM is ready, show button if APIs already loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      if (apisReady) {
+        tryShowButton();
+      }
+    });
+    
+    // Final fallback - force show after 3 seconds
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        tryShowButton();
+      }, 3000);
+    });
+  </script>
   
-  <!-- Load our JavaScript modules FIRST -->
-  <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/drive-api.js"></script>
-  <script src="js/ui.js"></script>
-  
-  <!-- THEN load Google API Scripts -->
+  <!-- Google APIs -->
   <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-</head>
-<body class="min-h-screen bg-gradient-to-br from-blue-50 via-gray-100 to-indigo-100">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=16">
+  <link rel="stylesheet" href="css/styles.css?v=16">
+  
+  <!-- 🔥 CRITICAL FIX: Force emoji icons, block Drive thumbnails -->
+  <style>
+    /* Force emoji icons - no images allowed! */
+    .file-icon-large {
+      font-size: 3rem !important;
+      margin-bottom: 0.75rem !important;
+      transition: transform 0.3s ease !important;
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
 
-  <header class="p-4">
-    <img src="assets/BCDevelopment1.jpg" alt="BC Development Logo" class="h-20 w-auto">
+    /* Hide any Drive thumbnail images that might sneak in */
+    .file-icon-large img {
+      display: none !important;
+    }
+
+    /* Ensure file cards render correctly */
+    .file-card-modern {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      background: white !important;
+      border: 2px solid #e5e7eb !important;
+      border-radius: 12px !important;
+      padding: 1.5rem 1rem !important;
+      cursor: pointer !important;
+      transition: all 0.25s ease !important;
+    }
+
+    .file-card-modern:hover {
+      transform: translateY(-4px) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+      border-color: #b8975a !important;
+    }
+
+    /* File grid layout */
+    .file-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+      gap: 1rem !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Modal backdrop */
+    .modal {
+      backdrop-filter: blur(12px) !important;
+      background: rgba(0, 0, 0, 0.6) !important;
+    }
+
+    /* Stats bar */
+    .modal-stats-bar {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 0.75rem !important;
+      padding: 1rem !important;
+      background: #f9fafb !important;
+      border-radius: 12px !important;
+      margin-bottom: 1.5rem !important;
+    }
+
+    .stat-pill {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0.5rem 0.875rem !important;
+      background: white !important;
+      border: 1px solid #e5e7eb !important;
+      border-radius: 20px !important;
+      font-size: 0.875rem !important;
+    }
+
+    /* File section headers */
+    .file-section-title {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      padding: 0.75rem 1rem !important;
+      background: #f3f4f6 !important;
+      border-radius: 10px !important;
+      border: 1px solid #e5e7eb !important;
+      font-size: 0.9375rem !important;
+      font-weight: 600 !important;
+      margin-bottom: 1rem !important;
+    }
+
+    /* Block Google Drive's native UI */
+    .modal iframe {
+      display: none !important;
+    }
+  </style>
+
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <img src="assets/BCDevelopment1.jpg" alt="BC Development" class="h-12">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800">BC Development Project Dashboard</h1>
+          <p class="text-sm text-gray-500">Project Navigator met Real-time Drive Integratie</p>
+        </div>
+      </div>
+      <div id="userInfo"></div>
+      
+      <!-- Settings Button -->
+      <button onclick="toggleSettings()" class="ml-4 text-gray-600 hover:text-gray-800" title="Instellingen">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </button>
+    </div>
   </header>
 
-  <!-- Auth Banner -->
-  <div id="authBanner" class="bg-yellow-50 border-b border-yellow-300 p-3 text-center hidden">
-    <span class="text-yellow-800 font-medium">⚠️ Niet verbonden met Google Drive</span>
-    <button onclick="handleAuthClick()" class="ml-3 bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700">
-      🔐 Inloggen met Google
-    </button>
+  <!-- Settings Panel -->
+  <div id="settingsPanel" class="hidden fixed top-20 right-4 bg-white rounded-lg shadow-xl border p-4 z-40 w-80">
+    <h3 class="font-bold text-lg mb-3">⚙️ Instellingen</h3>
+    
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <label class="text-sm font-medium">Auto-refresh</label>
+        <button onclick="toggleAutoRefresh()" id="autoRefreshToggle" 
+                class="px-3 py-1 rounded text-sm bg-green-100 text-green-800">
+          ✓ Actief
+        </button>
+      </div>
+      
+      <div class="border-t pt-3">
+        <div class="text-sm font-medium mb-2">Cache</div>
+        <div id="cacheStats" class="text-xs text-gray-600 mb-2">Laden...</div>
+        <button onclick="clearCache()" class="text-sm text-red-600 hover:text-red-800">
+          🗑️ Cache wissen
+        </button>
+      </div>
+      
+      <div class="border-t pt-3">
+        <button onclick="handleSignOut()" class="w-full text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded">
+          🚪 Uitloggen
+        </button>
+      </div>
+    </div>
   </div>
 
-  <div class="container mx-auto p-6 md:p-10">
-    <div class="text-center mb-8">
-      <h1 class="text-4xl font-extrabold text-gray-800 tracking-tight">BC Development Project Dashboard</h1>
-      <p class="text-gray-600 mt-1">Project Navigator met Real-time Drive Integratie</p>
-      <div id="userInfo" class="mt-3 text-sm text-gray-500 flex justify-center"></div>
-    </div>
+  <!-- Auth Banner -->
+  <div id="authBanner" class="hidden bg-blue-50 border-b border-blue-300 p-3 text-center">
+    <button onclick="handleAuthClick()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
+      🔐 Log in met Google
+    </button>
+    <p class="text-xs text-gray-600 mt-2">Wacht tot APIs geladen zijn...</p>
+  </div>
 
-    <!-- Projects Overview Grid -->
-    <h2 class="text-xl font-semibold text-gray-800 mb-3">📁 Projecten</h2>
-    <div id="projectsOverview" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-10"></div>
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    
+<!-- Projects Overview -->
+<section class="mb-8">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="inline-flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
+      <span class="text-xl">📁</span>
+      <span class="font-semibold text-gray-700">Projecten</span>
+    </div>
+    <span id="projectCount" class="text-sm text-gray-500 hidden"></span>
+  </div>
+  
+  <!-- ✅ THIS WAS MISSING! -->
+  <div id="projectsOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>
+  </div>
+</section>
+    <!-- Dashboard Overview Section (NEW!) -->
+<section id="dashboardSection" class="mb-12">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold flex items-center gap-2">
+      📊 Dashboard Overzicht
+    </h2>
+    
+    <!-- View Toggle -->
+    <div class="view-toggle-buttons">
+      <button id="viewDashboard" class="view-btn active" onclick="switchView('dashboard')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        Dashboard
+      </button>
+      <button id="viewList" class="view-btn" onclick="switchView('list')">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+        </svg>
+        Lijst
+      </button>
+    </div>
+  </div>
+  
+  <!-- Dashboard Widgets Container -->
+  <div id="dashboardWidgets" class="dashboard-grid">
+    <!-- Widgets worden hier gerenderd via JS -->
+  </div>
+</section>
 
     <!-- Project Selector -->
-    <div class="mb-6 max-w-3xl mx-auto bg-white rounded-xl shadow p-5">
-      <label class="block text-sm font-semibold text-gray-700 mb-2">Selecteer Project:</label>
-      <select id="projectSelector" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <div class="mb-6 max-w-2xl mx-auto">
+      <label class="block text-sm font-medium mb-2">Selecteer Project:</label>
+      <select id="projectSelector" class="w-full p-3 border rounded-lg bg-white shadow-sm">
         <option value="">-- Kies een project --</option>
       </select>
     </div>
 
-    <!-- Project Info -->
-    <div id="projectInfo" class="mb-6 max-w-4xl mx-auto hidden"></div>
-
     <!-- Search -->
-    <div class="mb-6 max-w-md mx-auto">
-      <input id="searchInput" placeholder="🔍 Zoek categorie of bestand..." 
-             class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none shadow-sm"/>
+    <div class="mb-6 max-w-2xl mx-auto">
+      <input type="text" id="searchInput" placeholder="🔍 Zoek categorie of bestand..." 
+             class="w-full p-3 border rounded-lg shadow-sm">
     </div>
+
+    <!-- Project Info Banner -->
+    <div id="projectInfo" class="hidden"></div>
 
     <!-- Categories Grid -->
-    <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"></div>
-  </div>
+    <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="col-span-full text-center py-10 text-gray-400">👆 Selecteer een project</div>
+    </div>
 
-  <!-- File Viewer Modal -->
+  </main>
+
+  <!-- File Modal -->
   <div id="fileModal" class="modal">
-    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-auto">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-800" id="modalTitle"></h2>
-        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] flex flex-col">
+      <div class="p-4 border-b flex justify-between items-center">
+        <h3 id="modalTitle" class="text-xl font-bold"></h3>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
       </div>
-      <div id="modalContent" class="space-y-2"></div>
+      <div id="modalContent" class="p-4 overflow-y-auto flex-1"></div>
     </div>
   </div>
 
-  <!-- Load JavaScript modules -->
-  <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/drive-api.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Scripts - v16 (FIXED ORDER!) -->
+  <script src="js/config.js?v=16"></script>
+  <script src="js/cache-manager.js?v=16"></script>
+  <script src="js/auto-refresh.js?v=16"></script>
+  <script src="js/error-recovery.js?v=16"></script>
+  
+  <!-- ⚠️ UI MUST LOAD BEFORE AUTH AND DRIVE-API -->
+  <script src="js/ui.js?v=16"></script>
+  
+  <!-- These depend on ui.js functions -->
+  <script src="js/auth.js?v=16"></script>
+  <script src="js/drive-api.js?v=16"></script>
+  
+  <!-- Main loads last -->
+  <script src="js/main.js?v=16"></script>
+
 </body>
 </html>
