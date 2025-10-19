@@ -5,7 +5,7 @@ window.CLIENT_ID = '857189998421-7nakrdu1cdm1cl76janm56dkalhl9tc3.apps.googleuse
 window.SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
 // Root folder ID
-const PROJECTS_ROOT_FOLDER_ID = '1Tv464M-ly8wbxRj9QmboW7YuSn53yqcw';
+const PROJECTS_ROOT_FOLDER_ID = '10_i_SihsiYTZA7idIjl2q19Ted7UK3BD';
 const OWNER_EMAIL = 'info@bcimmo.be';
 
 // Project naming convention filters
