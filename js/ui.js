@@ -253,9 +253,6 @@ function renderCategories(categories, project) {
   }
 
   const isAuth = gapi.client.getToken() !== null;
-  
-  // Use dynamic categories if available, otherwise fall back to CONFIG.categories
-  const categoriesToRender = project.dynamicCategories || categories;
 
   categories.forEach((cat, index) => {
     const card = document.createElement('div');
@@ -372,7 +369,7 @@ function renderCategories(categories, project) {
     `;
 
     grid.appendChild(card);
-  }
+  });
 }
 
 // **GAMMA-INSPIRED: Render dashboard overview widgets**
