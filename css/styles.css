@@ -2014,3 +2014,28 @@ main {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix iOS zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Fix iOS bounce scroll */
+  body {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+  }
+  
+  main {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix iOS button tap highlight */
+  button {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+}
