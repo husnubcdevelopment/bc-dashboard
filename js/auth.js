@@ -110,27 +110,35 @@ function showNoAccess() {
 }
 
 // Display user information
+// Display user information
 async function displayUserInfo(projectCount) {
   if (!window.CURRENT_USER_EMAIL) return;
   
   const hasRoot = await hasAccessToRoot();
   
-  let accessBadge = '';
-  if (hasRoot) {
-    accessBadge = '<span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Admin - Volledige toegang</span>';
+  // Get user info
+  const userName = window.CURRENT_USER_EMAIL.split('@')[0]; // "husnu"
+  const isMobile = window.innerWidth <= 768;
+  
+  // Determine display text
+  let displayText;
+  if (isMobile) {
+    // Mobile: Show just first letter as initial
+    displayText = userName.charAt(0).toUpperCase(); // "H"
   } else {
-    accessBadge = `<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Toegang tot ${projectCount} project${projectCount !== 1 ? 'en' : ''}</span>`;
+    // Desktop: Show email or shortened version
+    displayText = hasRoot 
+      ? window.CURRENT_USER_EMAIL 
+      : `${userName}@...`;
   }
   
-  document.getElementById('userInfo').innerHTML = `
-    <span class="inline-flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
-      <span class="pulse-dot"></span>
-      <span class="font-medium text-green-800">${window.CURRENT_USER_EMAIL}</span>
-      ${accessBadge}
-    </span>
-  `;
+  // Update the badge
+  const userInfoEl = document.getElementById('userInfo');
+  userInfoEl.textContent = displayText;
+  userInfoEl.setAttribute('data-email', window.CURRENT_USER_EMAIL);
+  
+  console.log(`✓ User info displayed: ${displayText} (${hasRoot ? 'Admin' : `${projectCount} projects`})`);
 }
-
 // Handle sign out
 function handleSignOut() {
   const token = gapi.client.getToken();
