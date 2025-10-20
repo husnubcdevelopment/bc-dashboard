@@ -110,34 +110,36 @@ function showNoAccess() {
 }
 
 // Display user information
-// Display user information
 async function displayUserInfo(projectCount) {
   if (!window.CURRENT_USER_EMAIL) return;
   
   const hasRoot = await hasAccessToRoot();
-  
-  // Get user info
-  const userName = window.CURRENT_USER_EMAIL.split('@')[0]; // "husnu"
+  const userName = window.CURRENT_USER_EMAIL.split('@')[0];
   const isMobile = window.innerWidth <= 768;
   
-  // Determine display text
-  let displayText;
+  const userInfoEl = document.getElementById('userInfo');
+  
   if (isMobile) {
-    // Mobile: Show just first letter as initial
-    displayText = userName.charAt(0).toUpperCase(); // "H"
+    // Mobile: Clean circle with initial
+    const initial = userName.charAt(0).toUpperCase();
+    userInfoEl.textContent = initial;
+    userInfoEl.setAttribute('data-email', window.CURRENT_USER_EMAIL);
   } else {
-    // Desktop: Show email or shortened version
-    displayText = hasRoot 
-      ? window.CURRENT_USER_EMAIL 
-      : `${userName}@...`;
+    // Desktop: Full info with badge
+    let statusBadge = '';
+    if (hasRoot) {
+      statusBadge = '<span class="user-badge admin">Admin - Volledige toegang</span>';
+    } else {
+      statusBadge = `<span class="user-badge user">Toegang tot ${projectCount} project${projectCount !== 1 ? 'en' : ''}</span>`;
+    }
+    
+    userInfoEl.innerHTML = `
+      <span class="user-email">${window.CURRENT_USER_EMAIL}</span>
+      ${statusBadge}
+    `;
   }
   
-  // Update the badge
-  const userInfoEl = document.getElementById('userInfo');
-  userInfoEl.textContent = displayText;
-  userInfoEl.setAttribute('data-email', window.CURRENT_USER_EMAIL);
-  
-  console.log(`✓ User info displayed: ${displayText} (${hasRoot ? 'Admin' : `${projectCount} projects`})`);
+  console.log(`✓ User info displayed (${hasRoot ? 'Admin' : `${projectCount} projects`})`);
 }
 // Handle sign out
 function handleSignOut() {
