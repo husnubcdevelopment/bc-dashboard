@@ -89,8 +89,8 @@ function renderProjectsOverview(projects) {
            style="animation-delay: ${index * 0.1}s">
         
         <!-- Header Row -->
-        <div class="flex items-start justify-between mb-4">
-          <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between mb-4 gap-3">
+          <div class="flex-1 min-w-0" style="max-width: calc(100% - 3rem);">
             <h3 class="text-xl font-bold text-gray-800 mb-1 truncate" title="${p.name}">
               ${p.name}
             </h3>
@@ -103,14 +103,14 @@ function renderProjectsOverview(projects) {
             </div>
           </div>
           
-          <button class="icon-btn-modern" 
-                  onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')"
-                  title="Open in Google Drive">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-            </svg>
-          </button>
+          <button class="icon-btn-modern flex-shrink-0" 
+        onclick="window.open('https://drive.google.com/drive/folders/${p.baseFolderId}','_blank')"
+        title="Open in Google Drive">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+  </svg>
+</button>
         </div>
 
         <!-- Progress Circle + Stats -->
