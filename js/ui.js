@@ -276,39 +276,62 @@ const hasFiles = totalFiles > 0;
       card.style.cursor = 'pointer';
     }
 
-    // Render subfolders with status indicators
-    let subfoldersHTML = '';
-    if (cat.subfolders && cat.subfolders.length > 0) {
-      subfoldersHTML = `
-        <div class="category-subfolders">
-          ${cat.subfolders.slice(0, 4).map(subfolder => {
-            const statusClass = subfolder.hasFiles ? 'has-files' : 'empty';
-            const icon = subfolder.hasFiles ? '📄' : '📂';
-            
-            return `
-              <div class="subfolder-item ${statusClass}">
-                <span class="subfolder-icon">${icon}</span>
-                <span class="subfolder-name">${subfolder.name}</span>
-                ${subfolder.hasFiles ? '<span class="subfolder-badge">●</span>' : ''}
-              </div>
-            `;
-          }).join('')}
-          
-          ${cat.subfolders.length > 4 ? `
-            <div class="subfolder-item more">
-              <span class="subfolder-icon">⋯</span>
-              <span class="subfolder-name">+${cat.subfolders.length - 4} meer</span>
-            </div>
-          ` : ''}
+ // Render subfolders with status indicators
+let subfoldersHTML = '';
+
+// 🆕 CHECK: Heeft hoofdmap bestanden?
+const hasMainFolderFiles = cat.mainFolderFileCount > 0;
+const hasSubfolders = cat.subfolders && cat.subfolders.length > 0;
+
+if (hasMainFolderFiles || hasSubfolders) {
+  subfoldersHTML = '<div class="category-subfolders">';
+  
+  // 🆕 SHOW MAIN FOLDER FILES FIRST (if any)
+  if (hasMainFolderFiles) {
+    subfoldersHTML += `
+      <div class="subfolder-item has-files">
+        <span class="subfolder-icon">📄</span>
+        <span class="subfolder-name">Bestanden in hoofdmap</span>
+        <span class="subfolder-badge">●</span>
+      </div>
+    `;
+  }
+  
+  // THEN show subfolders
+  if (hasSubfolders) {
+    subfoldersHTML += cat.subfolders.slice(0, hasMainFolderFiles ? 3 : 4).map(subfolder => {
+      const statusClass = subfolder.hasFiles ? 'has-files' : 'empty';
+      const icon = subfolder.hasFiles ? '📄' : '📂';
+      
+      return `
+        <div class="subfolder-item ${statusClass}">
+          <span class="subfolder-icon">${icon}</span>
+          <span class="subfolder-name">${subfolder.name}</span>
+          ${subfolder.hasFiles ? '<span class="subfolder-badge">●</span>' : ''}
         </div>
       `;
-    } else {
-      subfoldersHTML = `
-        <div class="category-subfolders empty-state">
-          <div class="text-xs text-gray-400 italic">Nog geen submappen</div>
+    }).join('');
+    
+    const totalToShow = hasMainFolderFiles ? 3 : 4;
+    if (cat.subfolders.length > totalToShow) {
+      subfoldersHTML += `
+        <div class="subfolder-item more">
+          <span class="subfolder-icon">⋯</span>
+          <span class="subfolder-name">+${cat.subfolders.length - totalToShow} meer</span>
         </div>
       `;
     }
+  }
+  
+  subfoldersHTML += '</div>';
+} else {
+  // NO files and NO subfolders
+  subfoldersHTML = `
+    <div class="category-subfolders empty-state">
+      <div class="text-xs text-gray-400 italic">Nog geen bestanden of mappen</div>
+    </div>
+  `;
+}
 
     card.innerHTML = `
       <!-- Status Indicator (top-right corner) -->
