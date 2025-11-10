@@ -83,6 +83,9 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- Chart.js for statistics visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/design-tokens.css?v=17">
   <link rel="stylesheet" href="css/styles.css?v=17">
@@ -328,21 +331,50 @@
     </div>
   </div>
 
-  <!-- Scripts - v17 (FIXED ORDER!) -->
-  <script src="js/config.js?v=17"></script>
-  <script src="js/cache-manager.js?v=17"></script>
-  <script src="js/auto-refresh.js?v=17"></script>
-  <script src="js/error-recovery.js?v=17"></script>
+  <!-- Statistics Sidebar -->
+  <div id="statsSidebar" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 overflow-hidden flex flex-col">
+    <!-- Sidebar Header -->
+    <div class="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <h2 class="text-xl font-bold flex items-center gap-2">
+        📊 Project Statistieken
+      </h2>
+      <p class="text-xs text-blue-100 mt-1">Real-time overzicht per categorie</p>
+    </div>
+    
+    <!-- Sidebar Content (Scrollable) -->
+    <div id="statsSidebarContent" class="flex-1 overflow-y-auto p-4">
+      <div class="text-center text-gray-400 py-8">
+        Selecteer een project om statistieken te zien
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar Toggle Button -->
+  <button id="statsSidebarToggle" 
+          onclick="toggleStatsSidebar()"
+          class="fixed right-4 bottom-4 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all z-40 flex items-center justify-center text-2xl"
+          title="Toon statistieken">
+    📊
+  </button>
+
+  <!-- Scripts - v18 (FIXED ORDER!) -->
+  <script src="js/config.js?v=18"></script>
+  <script src="js/cache-manager.js?v=18"></script>
+  <script src="js/auto-refresh.js?v=18"></script>
+  <script src="js/error-recovery.js?v=18"></script>
   
   <!-- ⚠️ UI MUST LOAD BEFORE AUTH AND DRIVE-API -->
-  <script src="js/ui.js?v=17"></script>
+  <script src="js/ui.js?v=18"></script>
+  
+  <!-- NEW: Sidebar Stats Module -->
+  <script src="js/sidebar-stats.js?v=18"></script>
   
   <!-- These depend on ui.js functions -->
-  <script src="js/auth.js?v=17"></script>
-  <script src="js/drive-api.js?v=17"></script>
+  <script src="js/auth.js?v=18"></script>
+  <script src="js/drive-api.js?v=18"></script>
   
   <!-- Main loads last -->
-  <script src="js/main.js?v=17"></script>
+  <script src="js/main.js?v=18"></script>
 
 </body>
 </html>

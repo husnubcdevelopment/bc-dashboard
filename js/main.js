@@ -42,11 +42,34 @@ document.getElementById('projectSelector').addEventListener('change', async e =>
     
     await renderCategories(categoriesToUse, selectedProject);
     
+    // 📊 NEW: Calculate and render sidebar statistics
+    if (window.SidebarStats) {
+      console.log('📊 Calculating project statistics...');
+      const stats = await window.SidebarStats.calculateProjectStats(
+        selectedProject.id,
+        selectedProject.name
+      );
+      
+      if (stats) {
+        window.SidebarStats.renderStatsSidebar(stats);
+        console.log('✓ Statistics rendered in sidebar');
+      }
+    }
+    
     // Start auto-refresh for this project's categories
     AutoRefreshManager.startCategoriesRefresh(selectedProject);
   } else {
     document.getElementById('projectInfo').classList.add('hidden');
     await renderCategories([], null);
+    
+    // Clear sidebar when no project selected
+    if (document.getElementById('statsSidebarContent')) {
+      document.getElementById('statsSidebarContent').innerHTML = `
+        <div class="text-center text-gray-400 py-8">
+          Selecteer een project om statistieken te zien
+        </div>
+      `;
+    }
     
     // Stop category refresh when no project selected
     AutoRefreshManager.intervals.categories && clearInterval(AutoRefreshManager.intervals.categories);
