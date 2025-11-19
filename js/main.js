@@ -138,10 +138,7 @@ document.getElementById('searchInput').addEventListener('input', async e => {
 
 // Initialize application on page load
 (function init() {
-  // Show initial dashboard message
-  document.getElementById('dashboardWidgets').innerHTML =
-    '<div class="col-span-full text-gray-500 text-center py-8">🔐 Log in om dashboard te laden.</div>';
-  
+  // Show initial projects message
   document.getElementById('projectsOverview').innerHTML =
     '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
   
