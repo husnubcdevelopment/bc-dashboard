@@ -25,9 +25,6 @@ async function handleAuthClick() {
     document.getElementById('authBanner').classList.add('hidden');
     
     // Show loading state in BOTH dashboard and list view
-    document.getElementById('dashboardWidgets').innerHTML = 
-      '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Dashboard laden...</span></div>';
-    
     document.getElementById('projectsOverview').innerHTML = 
       '<div class="col-span-full flex justify-center py-8"><div class="loading"></div><span class="ml-3 text-gray-600">Projecten ophalen...</span></div>';
     
@@ -46,8 +43,6 @@ async function handleAuthClick() {
     window.DYNAMIC_PROJECTS = allProjects;
     
     // 🆕 Render BOTH dashboard widgets AND project cards
-    console.log('🎨 Rendering dashboard widgets for', allProjects.length, 'projects');
-    renderDashboardWidgets(allProjects);  // Dashboard view
     renderProjectsOverview(allProjects);  // List view
     
     // Populate project selector
@@ -105,7 +100,6 @@ function showNoAccess() {
     </div>
   `;
   
-  document.getElementById('dashboardWidgets').innerHTML = emptyStateHTML;
   document.getElementById('projectsOverview').innerHTML = emptyStateHTML;
 }
 
@@ -168,7 +162,6 @@ function handleSignOut() {
   
   // Reset BOTH dashboard and list views
   const loginMessage = '<div class="text-gray-500 text-center py-8">🔐 Log in om projecten te laden uit Drive.</div>';
-  document.getElementById('dashboardWidgets').innerHTML = loginMessage;
   document.getElementById('projectsOverview').innerHTML = loginMessage;
   
   // Reset to dashboard view
