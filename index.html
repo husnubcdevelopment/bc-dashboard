@@ -334,10 +334,17 @@
   <!-- Statistics Sidebar -->
   <div id="statsSidebar" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 overflow-hidden flex flex-col">
     <!-- Sidebar Header with Tabs -->
-    <div class="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-      <h2 class="text-xl font-bold flex items-center gap-2 mb-3">
-        Project Overzicht
-      </h2>
+<div class="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-xl font-bold">Project Overzicht</h2>
+    <button onclick="toggleStatsSidebar()" 
+            class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+            title="Sluit sidebar">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
       
       <!-- Tab Navigation -->
       <div class="flex gap-2">

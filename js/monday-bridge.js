@@ -13,25 +13,25 @@ window.MondayTool = {
    * @returns {Promise<object>} Query results
    */
   async executeQuery(query, variables = {}) {
-    try {
-      console.log(' Executing Monday.com API query...');
-      
-      // Since we can't directly call Monday.com from client-side JavaScript,
-      // we need to implement this through a backend service or use Monday's OAuth
-      
-      // For now, this is a placeholder that returns mock data
-      // In production, this should call your backend API or use Monday SDK
-      
-      console.warn('⚠️ Monday.com API bridge not yet connected to backend');
-      console.log('Query:', query);
-      console.log('Variables:', variables);
-      
-      // Return empty data structure
-      return {
-        data: {
-          boards: []
-        }
-      };
+  try {
+    console.log('🚀 Calling Monday.com API via Cloudflare Worker...');
+    
+    const response = await fetch('https://lucky-cloud-d9f0.bcdevelopment.workers.dev', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ query, variables })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    console.log('✅ Monday.com API response received');
+    return result.data || result;
       
     } catch (error) {
       console.error('❌ Monday.com API call failed:', error);
@@ -99,7 +99,7 @@ window.MondayTool = {
  */
 function isMondayIntegrationAvailable() {
   // Check if we have API credentials or backend endpoint configured
-  return false; // Set to true when backend is ready
+  return true; // Set to true when backend is ready
 }
 
 /**
