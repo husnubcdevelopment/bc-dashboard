@@ -409,16 +409,12 @@ function searchPartners(partners, criteria) {
  * Call Monday.com GraphQL API
  */
 async function callMondayAPI(query, variables = {}) {
-  // This would normally call the Monday.com API
-  // For now, we'll use the monday.com tool from Claude
-  
   try {
-    // Call via monday.com tool
     const response = await window.MondayTool.executeQuery(query, variables);
-    return response;
+    return { data: response }; // Wrap in data object
   } catch (error) {
     console.error('Monday API call failed:', error);
-    return null;
+    return { data: {} };
   }
 }
 
