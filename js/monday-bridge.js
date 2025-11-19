@@ -11,6 +11,7 @@ window.MondayTool = {
    * @param {object} variables - Query variables
    * @returns {Promise<object>} Query results
    */
+  
   async executeQuery(query, variables = {}) {
     try {
       console.log('🚀 Calling Monday.com API via Cloudflare Worker...');
