@@ -144,13 +144,17 @@ async function fetchProjectTasks(groupId) {
     const response = await callMondayAPI(query);
     
     console.log('📦 Raw Monday API response:', response);
+
+// Monday API wraps response in 'data' object
+const data = response.data || response;
+
+if (!data || !data.boards || !data.boards[0]) {
+  console.log('⚠️ No boards in response');
+  console.log('Response structure:', response);
+  return [];
+}
     
-    if (!response || !response.boards || !response.boards[0]) {
-      console.log('⚠️ No boards in response');
-      return [];
-    }
-    
-    const group = response.boards[0].groups[0];
+    const group = data.boards[0].groups[0];
     if (!group || !group.items_page) {
       console.log('⚠️ No group or items in response');
       return [];
@@ -208,13 +212,16 @@ async function fetchPartners() {
       }
     `;
     
-    const response = await callMondayAPI(query);
-    
-    if (!response || !response.boards || !response.boards[0]) {
-      return [];
-    }
-    
-    const partners = response.boards[0].items_page.items.map(item => parsePartnerItem(item));
+const response = await callMondayAPI(query);
+
+// Monday API wraps response in 'data' object
+const data = response.data || response;
+
+if (!data || !data.boards || !data.boards[0]) {
+  return [];
+}
+
+const partners = data.boards[0].items_page.items.map(item => parsePartnerItem(item));
     
     // Cache the results
     mondayDataCache.partners = partners;
