@@ -44,7 +44,7 @@ async executeQuery(query, variables = {}) {
     console.error('❌ Monday.com API call failed:', error);
     throw error;
   }
-}
+},
   
   /**
    * Fetch project tasks for a specific group
