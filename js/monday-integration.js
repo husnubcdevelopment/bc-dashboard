@@ -143,16 +143,26 @@ async function fetchProjectTasks(groupId) {
     
     const response = await callMondayAPI(query);
     
+    console.log('📦 Raw Monday API response:', response);
+    
     if (!response || !response.boards || !response.boards[0]) {
+      console.log('⚠️ No boards in response');
       return [];
     }
     
     const group = response.boards[0].groups[0];
     if (!group || !group.items_page) {
+      console.log('⚠️ No group or items in response');
       return [];
     }
     
-    const tasks = group.items_page.items.map(item => parseTaskItem(item));
+    console.log(`📋 Found ${group.items_page.items.length} items in group`);
+    
+    const tasks = group.items_page.items.map(item => {
+      const parsed = parseTaskItem(item);
+      console.log('✓ Parsed task:', parsed.name);
+      return parsed;
+    });
     
     // Cache the results
     mondayDataCache.projectTasks[groupId] = tasks;
@@ -161,7 +171,7 @@ async function fetchProjectTasks(groupId) {
     return tasks;
     
   } catch (error) {
-    console.error('Error fetching project tasks:', error);
+    console.error('❌ Error fetching project tasks:', error);
     return [];
   }
 }
