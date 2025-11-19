@@ -1,10 +1,9 @@
 // BC Development Dashboard - Monday.com API Bridge
 // This file connects the Monday integration to Claude's monday.com connector tool
 
-/**
- * Execute Monday.com GraphQL query via Claude connector
- * This replaces the placeholder MondayTool.executeQuery function
- */
+// Jouw Cloudflare Worker URL
+const MONDAY_API_ENDPOINT = 'https://lucky-cloud-d9f0.bcdevelopment.workers.dev';
+
 window.MondayTool = {
   /**
    * Execute a GraphQL query against Monday.com API
@@ -12,39 +11,39 @@ window.MondayTool = {
    * @param {object} variables - Query variables
    * @returns {Promise<object>} Query results
    */
-async executeQuery(query, variables = {}) {
-  try {
-    console.log('🚀 Calling Monday.com API via Cloudflare Worker...');
-    
-    const response = await fetch('https://lucky-cloud-d9f0.bcdevelopment.workers.dev', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query, variables })
-    });
+  async executeQuery(query, variables = {}) {
+    try {
+      console.log('🚀 Calling Monday.com API via Cloudflare Worker...');
+      
+      const response = await fetch(MONDAY_API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query, variables })
+      });
 
-    if (!response.ok) {
-      throw new Error(`API call failed: ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
 
-    const result = await response.json();
-    
-    console.log('✅ Monday.com API response received');
-    console.log('🔍 Full result:', result);
-    
-    // Check for errors
-    if (result.errors) {
-      console.error('❌ Monday API errors:', result.errors);
+      const result = await response.json();
+      
+      console.log('✅ Monday.com API response received');
+      console.log('🔍 Full result:', result);
+      
+      // Check for errors
+      if (result.errors) {
+        console.error('❌ Monday API errors:', result.errors);
+      }
+      
+      return result.data || result;
+      
+    } catch (error) {
+      console.error('❌ Monday.com API call failed:', error);
+      throw error;
     }
-    
-    return result.data || result;
-    
-  } catch (error) {
-    console.error('❌ Monday.com API call failed:', error);
-    throw error;
-  }
-},
+  },
   
   /**
    * Fetch project tasks for a specific group
@@ -105,8 +104,7 @@ async executeQuery(query, variables = {}) {
  * Check if Monday.com integration is available
  */
 function isMondayIntegrationAvailable() {
-  // Check if we have API credentials or backend endpoint configured
-  return true; // Set to true when backend is ready
+  return true; // Backend is ready!
 }
 
 /**
