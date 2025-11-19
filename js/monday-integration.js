@@ -143,14 +143,19 @@ async function fetchProjectTasks(groupId) {
     
     const response = await callMondayAPI(query);
     
-    console.log('📦 Raw Monday API response:', response);
+console.log('📦 Raw Monday API response:', response);
+console.log('📦 Response keys:', Object.keys(response));
+console.log('📦 Has data?:', response.data);
+console.log('📦 Has boards?:', response.boards);
 
 // Monday API wraps response in 'data' object
 const data = response.data || response;
+console.log('📦 Data object:', data);
+console.log('📦 Data.boards:', data.boards);
 
 if (!data || !data.boards || !data.boards[0]) {
   console.log('⚠️ No boards in response');
-  console.log('Response structure:', response);
+  console.log('Full response:', JSON.stringify(response, null, 2));
   return [];
 }
     
