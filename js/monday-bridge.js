@@ -12,7 +12,7 @@ window.MondayTool = {
    * @param {object} variables - Query variables
    * @returns {Promise<object>} Query results
    */
-  async executeQuery(query, variables = {}) {
+async executeQuery(query, variables = {}) {
   try {
     console.log('🚀 Calling Monday.com API via Cloudflare Worker...');
     
@@ -31,13 +31,20 @@ window.MondayTool = {
     const result = await response.json();
     
     console.log('✅ Monday.com API response received');
-    return result.data || result;
-      
-    } catch (error) {
-      console.error('❌ Monday.com API call failed:', error);
-      throw error;
+    console.log('🔍 Full result:', result);
+    
+    // Check for errors
+    if (result.errors) {
+      console.error('❌ Monday API errors:', result.errors);
     }
-  },
+    
+    return result.data || result;
+    
+  } catch (error) {
+    console.error('❌ Monday.com API call failed:', error);
+    throw error;
+  }
+}
   
   /**
    * Fetch project tasks for a specific group
