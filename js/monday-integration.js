@@ -149,7 +149,8 @@ console.log('📦 Has data?:', response.data);
 console.log('📦 Has boards?:', response.boards);
 
 // Monday API wraps response in 'data' object
-const data = response.data || response;
+// Response is already unwrapped by MondayTool
+const data = response;
 console.log('📦 Data object:', data);
 console.log('📦 Data.boards:', data.boards);
 
@@ -220,7 +221,7 @@ async function fetchPartners() {
 const response = await callMondayAPI(query);
 
 // Monday API wraps response in 'data' object
-const data = response.data || response;
+const data = response;
 
 if (!data || !data.boards || !data.boards[0]) {
   return [];
@@ -411,10 +412,10 @@ function searchPartners(partners, criteria) {
 async function callMondayAPI(query, variables = {}) {
   try {
     const response = await window.MondayTool.executeQuery(query, variables);
-    return { data: response }; // Wrap in data object
+    return response; // GEEN extra wrapper!
   } catch (error) {
     console.error('Monday API call failed:', error);
-    return { data: {} };
+    return null;
   }
 }
 
@@ -482,11 +483,4 @@ window.MondayIntegration = {
   getPriorityColorClass
 };
 
-// Temporary bridge for Monday.com API calls
-window.MondayTool = {
-  async executeQuery(query, variables) {
-    // This will be replaced with actual Monday.com connector tool calls
-    console.log('Monday API Query:', query);
-    return { data: {} };
-  }
-};
+
