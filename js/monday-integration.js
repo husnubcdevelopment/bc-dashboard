@@ -8,19 +8,29 @@ const MONDAY_CONFIG = {
     contacten: '2018153870'
   },
   
+
   // Project name mapping (Drive folder name → Monday group)
-  projectMapping: {
-    'Noordlaan': 'group_mkxnjm0z',
-    'Wiekstraat': 'group_mkxnww6m',
-    'Bergbeemdstraat': 'group_mkxn81xv',
-    'Zwartberg': 'group_mkxn1328',
-    'Coppéelaan': 'group_mkxnqjkg',
-    'Zonneweelde': 'group_mkxnby3c',
-    'Meilweg': 'group_mkxn1mx5',
-    'Maaseikerbaan': 'group_mkxnsees',
-    'Wildekastanjelaan': 'group_mkxnxdyt',
-    'Gieterijstraat': 'group_mkxnrme0'
-  }
+projectMapping: {
+  // Hoofdprojecten
+  'Noordlaan': 'group_mkxnjm0z',              // Noordlaan - Genk
+  'Noordlaan 20': 'group_mkxnay3s',           // Noordlaan 20 - Genk
+  'Wiekstraat': 'group_mkxnww6m',             // Wiekstraat 148 - Genk / EB
+  'Bergbeemdstraat': 'group_mkxn81xv',        // Bergbeemdstraat - Genk
+  'Zwartberg': 'group_mkxn1328',              // Weg naar Zwartberg - Houthalen
+  'Coppéelaan': 'group_mkxnqjkg',             // Evence Coppéelaan 16-18 - Genk
+  'Coppee': 'group_mkxnqjkg',                 // Alternatieve spelling
+  'As': 'group_mkxnxvcn',                     // Weg naar As BC
+  'Zonneweelde': 'group_mkxnby3c',            // Zonneweelde - Genk
+  'Gieterijstraat': 'group_mkxnrme0',         // Gieterijstraat 117 - Genk
+  'Meilweg': 'group_mkxn1mx5',                // Meilweg - Genk
+  'Maaseikerbaan': 'group_mkxnsees',          // Maaseikerbaan - FMG
+  'Wildekastanjelaan': 'group_mkxnxdyt',      // Wildekastanjelaan - BC
+  'Venne': 'group_mkxn15ht',                  // Project De Venne
+  
+  // Speciale groepen
+  'Archief': 'group_mkxnxws4',                // Archief - Afgerond
+  'Administratie': 'group_mkxnh2vz'           // Administratie - Algemeen
+}
 };
 
 // Global cache for Monday data
