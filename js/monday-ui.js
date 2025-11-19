@@ -1,5 +1,32 @@
 // BC Development Dashboard - Monday.com UI Rendering Module
-
+// TEST: Force render test data
+window.testMondayUI = function() {
+  const testData = {
+    projectName: 'Noordlaan 20 Test',
+    projectId: 'test',
+    tasks: [
+      {
+        id: '1',
+        name: 'Test Taak - HVAC',
+        status: 'Bezig',
+        priority: 'Urgent',
+        typeWork: 'HVAC',
+        deadline: '2025-11-25'
+      }
+    ],
+    partners: [
+      {
+        id: '1',
+        name: 'Test Aannemer',
+        type: 'Aannemer',
+        organization: 'ABC Bouw',
+        score: '9'
+      }
+    ]
+  };
+  
+  renderMondayProjectData(testData);
+};
 /**
  * Render Monday.com project data in sidebar
  */
