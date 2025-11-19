@@ -2303,3 +2303,100 @@ main {
 .category-card.highlighted {
   animation: highlight-pulse 1s ease-out;
 }
+
+/* ========================================
+   MONDAY.COM INTEGRATION
+======================================== */
+
+/* Sidebar tabs */
+.sidebar-tab {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-tab.active {
+  background: white !important;
+  color: #2563eb !important;
+  font-weight: 600;
+}
+
+.sidebar-tab:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Content panels */
+.sidebar-content-panel {
+  display: none;
+}
+
+.sidebar-content-panel.active {
+  display: block;
+}
+
+/* Task status dots */
+.bg-red-500 {
+  background-color: #ef4444;
+}
+
+.bg-blue-500 {
+  background-color: #3b82f6;
+}
+
+.bg-green-500 {
+  background-color: #10b981;
+}
+
+.bg-yellow-500 {
+  background-color: #f59e0b;
+}
+
+.bg-gray-500 {
+  background-color: #6b7280;
+}
+
+/* Task cards hover effects */
+.monday-task-card {
+  transition: all 0.2s ease;
+}
+
+.monday-task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Contact search widget */
+#contactSearchResults {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Priority badges */
+.text-red-600 {
+  color: #dc2626;
+}
+
+.text-orange-600 {
+  color: #ea580c;
+}
+
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.text-green-600 {
+  color: #16a34a;
+}
+
+/* Loading state for Monday data */
+.monday-loading {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

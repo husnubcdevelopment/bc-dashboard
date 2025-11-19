@@ -56,6 +56,39 @@ document.getElementById('projectSelector').addEventListener('change', async e =>
       }
     }
     
+    // 💼 NEW: Initialize Monday.com integration
+    if (window.MondayIntegration && window.isMondayIntegrationAvailable?.()) {
+      console.log('💼 Initializing Monday.com integration...');
+      try {
+        const mondayData = await window.MondayIntegration.initializeMondayIntegration(
+          selectedProject.name,
+          selectedProject.id
+        );
+        
+        if (mondayData && window.renderMondayProjectData) {
+          window.renderMondayProjectData(mondayData);
+          console.log('✓ Monday.com data rendered in sidebar');
+        }
+      } catch (error) {
+        console.error('Failed to load Monday.com data:', error);
+      }
+    } else {
+      // Show empty state for Monday tab
+      if (document.getElementById('mondaySidebarContent')) {
+        document.getElementById('mondaySidebarContent').innerHTML = `
+          <div class="text-center py-12 px-4">
+            <div class="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <p class="text-gray-600 text-sm font-medium mb-1">Monday.com beschikbaar</p>
+            <p class="text-gray-400 text-xs">Backend verbinding nog niet geconfigureerd</p>
+          </div>
+        `;
+      }
+    }
+    
     // Start auto-refresh for this project's categories
     AutoRefreshManager.startCategoriesRefresh(selectedProject);
   } else {
@@ -236,3 +269,38 @@ function selectProjectFromWidget(projectId) {
 // Make functions globally accessible
 window.switchView = switchView;
 window.selectProjectFromWidget = selectProjectFromWidget;
+// ========================================
+// SIDEBAR TAB SWITCHING
+// ========================================
+
+/**
+ * Switch between Drive Stats and Monday.com tabs in sidebar
+ */
+function switchSidebarTab(tab) {
+  // Update tab buttons
+  const tabDrive = document.getElementById('tabDrive');
+  const tabMonday = document.getElementById('tabMonday');
+  
+  if (tab === 'drive') {
+    tabDrive?.classList.add('active');
+    tabMonday?.classList.remove('active');
+    
+    // Show Drive content, hide Monday content
+    document.getElementById('statsSidebarContent')?.classList.add('active');
+    document.getElementById('statsSidebarContent')?.classList.remove('hidden');
+    document.getElementById('mondaySidebarContent')?.classList.remove('active');
+    document.getElementById('mondaySidebarContent')?.classList.add('hidden');
+  } else {
+    tabMonday?.classList.add('active');
+    tabDrive?.classList.remove('active');
+    
+    // Show Monday content, hide Drive content
+    document.getElementById('mondaySidebarContent')?.classList.add('active');
+    document.getElementById('mondaySidebarContent')?.classList.remove('hidden');
+    document.getElementById('statsSidebarContent')?.classList.remove('active');
+    document.getElementById('statsSidebarContent')?.classList.add('hidden');
+  }
+}
+
+// Make function globally accessible
+window.switchSidebarTab = switchSidebarTab;

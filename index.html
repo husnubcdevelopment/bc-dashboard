@@ -333,18 +333,38 @@
 
   <!-- Statistics Sidebar -->
   <div id="statsSidebar" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 overflow-hidden flex flex-col">
-    <!-- Sidebar Header -->
+    <!-- Sidebar Header with Tabs -->
     <div class="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-      <h2 class="text-xl font-bold flex items-center gap-2">
-        📊 Project Statistieken
+      <h2 class="text-xl font-bold flex items-center gap-2 mb-3">
+        Project Overzicht
       </h2>
-      <p class="text-xs text-blue-100 mt-1">Real-time overzicht per categorie</p>
+      
+      <!-- Tab Navigation -->
+      <div class="flex gap-2">
+        <button onclick="switchSidebarTab('drive')" 
+                id="tabDrive"
+                class="sidebar-tab active flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors bg-white bg-opacity-20">
+          Drive Stats
+        </button>
+        <button onclick="switchSidebarTab('monday')" 
+                id="tabMonday"
+                class="sidebar-tab flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors hover:bg-white hover:bg-opacity-10">
+          Monday.com
+        </button>
+      </div>
     </div>
     
-    <!-- Sidebar Content (Scrollable) -->
-    <div id="statsSidebarContent" class="flex-1 overflow-y-auto p-4">
+    <!-- Sidebar Content (Scrollable) - Drive Stats -->
+    <div id="statsSidebarContent" class="flex-1 overflow-y-auto p-4 sidebar-content-panel active">
       <div class="text-center text-gray-400 py-8">
         Selecteer een project om statistieken te zien
+      </div>
+    </div>
+    
+    <!-- Sidebar Content (Scrollable) - Monday Data -->
+    <div id="mondaySidebarContent" class="flex-1 overflow-y-auto p-4 sidebar-content-panel hidden">
+      <div class="text-center text-gray-400 py-8">
+        Selecteer een project om Monday.com data te zien
       </div>
     </div>
   </div>
@@ -353,28 +373,35 @@
   <button id="statsSidebarToggle" 
           onclick="toggleStatsSidebar()"
           class="fixed right-4 bottom-4 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all z-40 flex items-center justify-center text-2xl"
-          title="Toon statistieken">
-    📊
+          title="Toon project overzicht">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+    </svg>
   </button>
 
-  <!-- Scripts - v18 (FIXED ORDER!) -->
-  <script src="js/config.js?v=18"></script>
-  <script src="js/cache-manager.js?v=18"></script>
-  <script src="js/auto-refresh.js?v=18"></script>
-  <script src="js/error-recovery.js?v=18"></script>
+  <!-- Scripts - v19 (FIXED ORDER!) -->
+  <script src="js/config.js?v=19"></script>
+  <script src="js/cache-manager.js?v=19"></script>
+  <script src="js/auto-refresh.js?v=19"></script>
+  <script src="js/error-recovery.js?v=19"></script>
   
   <!-- ⚠️ UI MUST LOAD BEFORE AUTH AND DRIVE-API -->
-  <script src="js/ui.js?v=18"></script>
+  <script src="js/ui.js?v=19"></script>
   
-  <!-- NEW: Sidebar Stats Module -->
-  <script src="js/sidebar-stats.js?v=18"></script>
+  <!-- Sidebar Stats Module -->
+  <script src="js/sidebar-stats.js?v=19"></script>
+  
+  <!-- NEW: Monday.com Integration -->
+  <script src="js/monday-bridge.js?v=19"></script>
+  <script src="js/monday-integration.js?v=19"></script>
+  <script src="js/monday-ui.js?v=19"></script>
   
   <!-- These depend on ui.js functions -->
-  <script src="js/auth.js?v=18"></script>
-  <script src="js/drive-api.js?v=18"></script>
+  <script src="js/auth.js?v=19"></script>
+  <script src="js/drive-api.js?v=19"></script>
   
   <!-- Main loads last -->
-  <script src="js/main.js?v=18"></script>
+  <script src="js/main.js?v=19"></script>
 
 </body>
 </html>
